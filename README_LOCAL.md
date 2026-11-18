@@ -8,7 +8,7 @@ Ce moteur ajoute une génération locale sur ton propre ordinateur. Il est indé
 - Le moteur détecte automatiquement la RAM, le GPU et la mémoire vidéo.
 - Configuration légère : le modèle **Segmind Tiny-SD** (dépôt d'environ 1,06 Go) est sélectionné si le PC n'a pas de GPU CUDA adapté ou dispose de moins de 12 Go de RAM / moins de 8 Go de VRAM. Il est limité à 512 × 512 et peut être lent sur CPU. Ce modèle est distillé depuis Realistic Vision : il est plutôt orienté rendu réaliste et n'est pas un spécialiste anime.
 - Configuration plus puissante : **SDXL Turbo** est sélectionné automatiquement uniquement avec un GPU CUDA d'au moins 8 Go de VRAM et 12 Go de RAM.
-- Avec moins de 5,5 Go de RAM totale ou moins de 1,2 Go de RAM disponible, le moteur bloque le chargement pour éviter de saturer Windows. 8 Go de RAM sont préférables pour tenter le mode léger ; un GPU dédié améliore fortement la vitesse.
+- Avec moins de 5,5 Go de RAM totale ou moins de 2 Go de RAM disponible, le moteur bloque le chargement pour éviter de saturer Windows. 8 Go de RAM sont préférables pour tenter le mode léger ; un GPU dédié améliore fortement la vitesse.
 - L'inpainting masqué est désactivé dans le profil léger, car son modèle séparé demande beaucoup plus de mémoire. L'image-vers-image sans masque reste disponible.
 - Les modèles sont gratuits à télécharger et à exécuter localement, mais leurs licences (CreativeML OpenRAIL-M) et les restrictions d'usage doivent être respectées.
 - Plusieurs Go de stockage pour les modèles. Le premier lancement télécharge automatiquement les poids depuis Hugging Face.
