@@ -58,6 +58,7 @@ textarea{min-height:116px;resize:vertical}
 </div></div>
 <div class="field"><label for="negative">Éléments à éviter <span class="hint">Facultatif</span></label><input id="negative" placeholder="flou, doigts déformés, texte illisible, watermark..."></div>
 <div class="field"><label for="modelMode">Modèle IA <span class="hint" id="modelState">Chargement des modèles…</span></label><select id="modelMode"><option value="auto">Automatique · modèle disponible</option><option value="photo">Phot réaliste · meilleur modèle actif</option><option value="anime">Anime · modèle adapté si disponible</option></select><div class="performance-note" id="modelInfo">La liste est actualisée depuis les modèles réellement actifs sur AI Horde. Les modèles peuvent apparaître ou disparaître selon les GPU bénévoles.</div></div>
+<div class="field"><label for="adultMode">Contenu sensible / adulte <span class="hint">Optionnel · 18+</span></label><label style="display:flex;align-items:center;gap:9px;justify-content:flex-start;font-weight:500"><input id="adultMode" type="checkbox" style="width:17px;height:17px;accent-color:#a78bfa"> Autoriser le routage vers des workers non-censeurs</label><div class="performance-note">À activer uniquement pour une demande légale destinée à des personnages adultes (18+). Cela évite certains filtres automatiques de workers, mais ne contourne pas les règles de contenu d’AI Horde.</div></div>
 <div class="field"><label>Service de génération</label><div class="notice" style="margin:0">AI Horde — réseau communautaire de GPU bénévoles. Aucun abonnement ni clé API payante requis. Les demandes anonymes passent après celles des comptes enregistrés. Résolution limitée à 576 px pour éviter les demandes nécessitant des kudos.</div></div>
 <div class="grid2">
 <div class="field"><label for="ratio">Format</label><select id="ratio"><option value="1:1">Carré · 1:1</option><option value="2:3">Portrait · 2:3</option><option value="3:2">Paysage · 3:2</option><option value="9:16">Story · 9:16</option><option value="16:9">Cinéma · 16:9</option><option value="3:4">Portrait · 3:4</option><option value="4:3">Paysage · 4:3</option></select></div>
@@ -157,7 +158,7 @@ async function hordeRequest(path,options={}){
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function generateOne(fullPrompt,width,height,seed,index,total,steps){
  const params={width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps,n:1,cfg_scale:6,sampler_name:"k_euler",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})};
- const models=selectedModels();const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params,...(models.length?{models}:{}),...(referenceImage?{source_image:referenceImage,source_processing:"img2img"}:{}),nsfw:false,censor_nsfw:true,shared:true})});
+ const models=selectedModels();const allowAdult=$("adultMode").checked;const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params,...(models.length?{models}:{}),...(referenceImage?{source_image:referenceImage,source_processing:"img2img"}:{}),nsfw:allowAdult,censor_nsfw:!allowAdult,shared:true})});
  if(!submitted.id)throw Error(submitted.message||"Le service n'a pas accepté la demande.");
  const id=submitted.id;const started=Date.now();let pollDelay=4000;let lastQueue=-1;
  while(Date.now()-started<720000){
@@ -167,7 +168,7 @@ async function generateOne(fullPrompt,width,height,seed,index,total,steps){
   if(check.done===true||Number(check.finished||0)>=1){
    const result=await hordeRequest("/generate/status/"+encodeURIComponent(id));
    const generation=result.generations&&result.generations[0];
-   if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");
+   if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");const metadata=Array.isArray(generation.gen_metadata)?generation.gen_metadata:[];if(metadata.some(item=>String(item.type||"").toLowerCase().includes("censor")))throw Error("Image censurée par le worker. Si ta demande concerne bien des personnages adultes et du contenu autorisé, active l’option Contenu sensible / adulte (18+) puis réessaie.");
    const imageUrl=/^https?:\/\//i.test(generation.img)?generation.img:"data:image/webp;base64,"+generation.img;
    addImage(imageUrl,$("prompt").value.trim(),seed);
    return;
