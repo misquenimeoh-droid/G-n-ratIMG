@@ -5,7 +5,10 @@ Ce moteur ajoute une génération locale sur ton propre ordinateur. Il est indé
 ## Configuration
 
 - Python 3.10 ou 3.11.
-- GPU NVIDIA conseillé (8 Go de VRAM minimum pour tenter SDXL Turbo, 12 Go ou plus recommandés). Le CPU fonctionne parfois mais sera très lent.
+- Le moteur détecte automatiquement la RAM, le GPU et la mémoire vidéo.
+- Configuration légère : le modèle **Segmind Tiny-SD** est sélectionné si le PC n'a pas de GPU CUDA adapté ou dispose de moins de 12 Go de RAM / moins de 8 Go de VRAM. Il est limité à 512 × 512 et peut être lent sur CPU.
+- Configuration plus puissante : **SDXL Turbo** est sélectionné automatiquement uniquement avec un GPU CUDA d'au moins 8 Go de VRAM et 12 Go de RAM.
+- Avec moins de 5,5 Go de RAM totale ou moins de 1,2 Go de RAM disponible, le moteur bloque le chargement pour éviter de saturer Windows. 8 Go de RAM sont préférables pour tenter le mode léger ; un GPU dédié améliore fortement la vitesse.
 - Plusieurs Go de stockage pour les modèles. Le premier lancement télécharge automatiquement les poids depuis Hugging Face.
 - Connexion Internet nécessaire au premier téléchargement ; ensuite les modèles déjà téléchargés peuvent être réutilisés hors ligne.
 
@@ -14,8 +17,9 @@ Ce moteur ajoute une génération locale sur ton propre ordinateur. Il est indé
 1. Installe Python 3.11.
 2. Double-clique sur `start_windows.bat` : il crée l’environnement et installe les bibliothèques du moteur.
 3. Si PyTorch manque, ouvre une deuxième fenêtre CMD, exécute les deux commandes affichées par le script, puis installe PyTorch depuis https://pytorch.org/get-started/locally/ (CUDA pour NVIDIA, CPU sinon).
-4. Relance `start_windows.bat` et attends le téléchargement initial du modèle SDXL Turbo.
-5. Ouvre IMAGINA sur GitHub Pages, choisis **Moteur local Python**, puis clique sur **Tester le moteur**.
+4. Relance `start_windows.bat` et attends le téléchargement du modèle choisi automatiquement (Tiny-SD sur les petites configurations, SDXL Turbo sur un PC plus puissant).
+5. Ouvre IMAGINA sur GitHub Pages, choisis **Moteur local Python**, puis clique sur **Détecter le matériel**. Le site affiche la RAM, le GPU, le modèle retenu et la résolution conseillée.
+6. Lance **Diagnostic complet** pour vérifier le chargement et réaliser une première génération locale.
 
 Le serveur écoute uniquement sur `http://127.0.0.1:7860` : il n'est pas exposé sur Internet.
 
