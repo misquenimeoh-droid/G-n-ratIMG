@@ -180,7 +180,7 @@ def diagnostics_load_model(payload: dict):
         raise HTTPException(400, "Type de modèle invalide : text ou inpaint attendu.")
     with LOCK:
         try:
-            if kind == "text" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 1.2):
+            if kind == "text" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 2.0):
                 raise HTTPException(507, "Mémoire vive insuffisante pour charger le modèle local. Ferme les applications et vérifie que le PC dispose d'au moins 6 Go de RAM (8 Go conseillés), ou utilise le moteur cloud.")
             load_pipe(kind)
             return {"ok": True, "kind": kind, "device": DEVICE,
@@ -202,7 +202,7 @@ def generate(req: GenerateRequest):
         raise HTTPException(413, "Configuration légère : résolution maximale 512 × 512. Choisis 512 px ou moins.")
     if req.source_mask and MODEL_ID == "segmind/tiny-sd":
         raise HTTPException(507, "L'inpainting local nécessite un modèle plus lourd. Il est désactivé sur le profil mémoire léger pour éviter de saturer le PC.")
-    if MODEL_ID == "segmind/tiny-sd" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 1.2):
+    if MODEL_ID == "segmind/tiny-sd" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 2.0):
         raise HTTPException(507, "RAM insuffisante pour la génération locale légère. Ferme les applications ou utilise un ordinateur avec davantage de mémoire.")
     with LOCK:
         try:
