@@ -68,7 +68,7 @@ textarea{min-height:116px;resize:vertical}
  <label>Diagnostic automatique <span class="hint">Moteur Python local</span></label>
  <div class="notice" style="margin:0 0 9px">Vérifie le serveur, CUDA/GPU, les dépendances, les poids des modèles et peut lancer des tests réels. Le premier chargement de SDXL Turbo télécharge plusieurs gigaoctets.</div>
  <div class="grid2">
-  <button class="secondary" id="diagRun" type="button">Diagnostic complet</button>
+  <button class="secondary" id="diagHorde" type="button">Vérifier AI Horde</button><button class="secondary" id="diagRun" type="button">Diagnostic complet</button>
   <button class="secondary" id="diagModel" type="button">Tester SDXL Turbo</button>
   <button class="secondary" id="diagGenerate" type="button">Générer une image test</button>
   <button class="secondary" id="diagInpaint" type="button">Tester l’inpainting</button>
@@ -166,6 +166,8 @@ async function testLocalEngine(){const button=$("engineTest");button.disabled=tr
 $("engineTest").addEventListener("click",testLocalEngine);
 function diagWrite(message,append=true){const el=$("diagLog");el.textContent=(append?el.textContent+"\n":"")+message;el.scrollTop=el.scrollHeight;}
 async function diagFetch(path,options={}){const response=await fetch(engineBase()+path,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})},signal:AbortSignal.timeout(options.timeout||900000)});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.detail||data.message||("HTTP "+response.status));return data;}
+async function diagHorde(){diagWrite("… Test de connexion à AI Horde…",false);const response=await fetch(API+"/status/models",{headers:{"apikey":ANON_KEY,"Client-Agent":CLIENT_AGENT},signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error("AI Horde répond HTTP "+response.status);const models=await response.json();const count=Array.isArray(models)?models.filter(x=>x&&Number(x.count??0)>0).length:0;diagWrite("✓ AI Horde accessible depuis ce navigateur.");diagWrite("✓ "+count+" modèles avec workers disponibles au moment du test.");diagWrite("Si la génération échoue malgré ce test, le problème concerne l’envoi POST ou le réseau au moment de la requête.");}
+$("diagHorde").addEventListener("click",()=>diagAction($("diagHorde"),diagHorde));
 async function diagHealth(){const data=await diagFetch("/api/diagnostics",{timeout:15000});diagWrite("✓ Serveur Python : connecté");diagWrite((data.cuda?"✓":"⚠")+" CUDA : "+(data.cuda?"détecté":"indisponible (CPU)")+(data.gpu?" · "+data.gpu:""));diagWrite("✓ PyTorch : "+data.torch+" · appareil : "+data.device);diagWrite("• SDXL Turbo : "+data.model);diagWrite("• Modèles déjà chargés : "+(data.pipelines_loaded.join(", ")||"aucun"));for(const [name,item] of Object.entries(data.optional)){diagWrite((item.ready?"✓":"⚠")+" "+name+" : "+item.message);}return data;}
 async function diagLoadModel(){diagWrite("… Chargement du pipeline SDXL Turbo (première fois : téléchargement possible)…");const data=await diagFetch("/api/diagnostics/model",{method:"POST",body:JSON.stringify({kind:"text"}),timeout:1800000});diagWrite("✓ Pipeline SDXL Turbo chargé en mémoire sur "+data.device);}
 async function diagGenerate(){diagWrite("… Test réel de génération 512 × 512 en cours…");const data=await diagFetch("/api/generate",{method:"POST",body:JSON.stringify({prompt:"A beautiful cinematic landscape at sunrise, detailed mountains, lake reflections, professional digital art",negative_prompt:"blurry, low quality, text, watermark",width:512,height:512,steps:2,seed:123456}),timeout:1800000});if(!data.image)throw Error("Aucune image retournée.");addImage("data:image/webp;base64,"+data.image,"Diagnostic IMAGINA · test SDXL Turbo",data.seed);diagWrite("✓ Génération réelle réussie · "+data.device+" · seed "+data.seed);}
@@ -242,7 +244,8 @@ async function hordeRequest(path,options={}){
    throw Error(response.status===429?"Trop de requêtes : patientez quelques secondes puis réessayez.":message);
   }catch(error){
    if(method==="GET"&&attempt<3&&(error.name==="AbortError"||error instanceof TypeError)){await wait(Math.min(1000*Math.pow(2,attempt),8000));attempt++;continue;}
-   if(error.name==="AbortError")throw Error("Le serveur met trop de temps à répondre. Réessayez.");
+   if(error.name==="AbortError")throw Error("Délai de connexion dépassé vers AI Horde. Vérifiez votre connexion puis réessayez.");
+   if(error instanceof TypeError && /fetch/i.test(error.message||""))throw Error("Connexion navigateur → AI Horde impossible. Vérifiez Internet, désactivez temporairement VPN/proxy ou bloqueur de requêtes, puis testez « Vérifier AI Horde ». Si vous utilisez Python local, vérifiez que le serveur tourne sur http://127.0.0.1:7860.");
    throw error;
   }finally{clearTimeout(timeout);}
  }
