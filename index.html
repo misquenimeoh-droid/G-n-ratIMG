@@ -108,37 +108,34 @@ const modelMode=$("modelMode");
 async function loadModels(){
  try{
   const data=await hordeRequest("/status/models");
-  activeModels=(Array.isArray(data)?data:[]).filter(m=>m&&typeof m.name==="string"&&(m.type===undefined||String(m.type).toLowerCase()==="image"));
-  activeModels.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
-  const exact=activeModels.filter(m=>Number(m.count??1)>0);
-  for(const model of exact){
-   const option=document.createElement("option");option.value="model:"+model.name;option.textContent=model.name+" · "+(model.count??"?")+" worker(s)";modelMode.append(option);
-  }
-  $("modelState").textContent=exact.length+" modèles actifs";
-  $("modelInfo").textContent=exact.length+" modèles image détectés en direct. Le mode photoréaliste sélectionne automatiquement un modèle adapté lorsqu'il existe.";
- }catch(error){
-  $("modelState").textContent="Liste indisponible";
-  $("modelInfo").textContent="Impossible de charger la liste maintenant. Le mode automatique reste utilisable.";
- }
+  activeModels=(Array.isArray(data)?data:[]).filter(m=>m&&typeof m.name==="string"&&(m.type===undefined||String(m.type).toLowerCase()==="image")).map(m=>({...m,count:Number(m.count)||0})).filter(m=>m.count>0).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+  modelMode.querySelectorAll('option[data-live-model="1"]').forEach(o=>o.remove());
+  for(const model of activeModels){const option=document.createElement("option");option.value="model:"+model.name;option.dataset.liveModel="1";option.textContent=model.name+" · "+model.count+" worker(s)";modelMode.append(option);}
+  $("modelState").textContent=activeModels.length+" modèles avec workers";
+  $("modelInfo").textContent=activeModels.length?"Liste en direct. Le mode automatique privilégie le style demandé puis le nombre de GPU bénévoles disponibles.":"Aucun worker image actif détecté pour le moment.";
+ }catch(error){$("modelState").textContent="Liste indisponible";$("modelInfo").textContent="La liste des modèles n'a pas pu être actualisée. Le mode automatique reste disponible.";}
+}
+function modelIntent(){
+ const brief=($("prompt").value+" "+style+" "+(document.querySelector(".chip.active")?.textContent||"")).toLowerCase();
+ if(/anime|manga|waifu|gacha|cel shading|lineart|personnage|illustration japonaise/.test(brief))return "anime";
+ if(/photo|photoreal|réaliste|realistic|portrait photo|photographie|camera|objectif/.test(brief))return "photo";
+ return "general";
+}
+function modelRank(model,intent){
+ const name=model.name.toLowerCase();
+ const match=intent==="anime"?/animagine|illustrious|pony|waifu|anime|anything|noobai/.test(name):intent==="photo"?/juggernaut|realvis|epicrealism|realistic|photoreal|albedobase/.test(name):/dreamshaper|juggernaut|sdxl|stable diffusion xl/.test(name);
+ return (match?10000:0)+Math.min(model.count,500)*10;
 }
 function selectedModels(){
  const choice=modelMode.value;
  if(choice.startsWith("model:"))return [choice.slice(6)];
- if(choice==="photo"){
-  const preferred=activeModels.filter(m=>Number(m.count??1)>0&&/(juggernaut|realvis|epicrealism|realistic|photoreal|albedobase|dreamshaper)/i.test(m.name)).sort((a,b)=>Number(b.count||0)-Number(a.count||0));
-  if(!preferred.length)$("modelInfo").textContent="Aucun modèle photoréaliste spécialisé détecté pour le moment. Le service utilisera son choix automatique gratuit.";
-  return preferred.length?[preferred[0].name]:[];
- }
- if(choice==="anime"){
-  const preferred=activeModels.filter(m=>Number(m.count??1)>0&&/(anime|animagine|illustrious|waifu|anything|anima)/i.test(m.name)).sort((a,b)=>Number(b.count||0)-Number(a.count||0));
-  return preferred.length?[preferred[0].name]:[];
- }
- const brief=($("prompt").value+" "+style).toLowerCase();
- const animeIntent=/(anime|manga|waifu|illustration|gacha|cel shading|lineart|personnage)/i.test(brief);
- const photoIntent=/(photo|photoreal|réaliste|realistic|portrait photo|cinematic photograph)/i.test(brief);
- const patterns=animeIntent?/(animagine|illustrious|pony|waifu|anime|anything|noobai)/i:photoIntent?/(juggernaut|realvis|epicrealism|realistic|photoreal|albedobase)/i:/(dreamshaper|juggernaut|animagine|illustrious|realvis)/i;
- const ranked=activeModels.filter(m=>Number(m.count??1)>0&&patterns.test(m.name)).sort((a,b)=>Number(b.count||0)-Number(a.count||0));
- return ranked.length?[ranked[0].name]:[];
+ const intent=choice==="anime"?"anime":choice==="photo"?"photo":modelIntent();
+ const ranked=activeModels.slice().sort((a,b)=>modelRank(b,intent)-modelRank(a,intent)||b.count-a.count);
+ const best=ranked[0];
+ if(!best){$("modelInfo").textContent="Aucun worker actif : AI Horde choisira un modèle si le service en trouve un.";return [];}
+ const specialist=modelRank(best,intent)>=10000;
+ $("modelInfo").textContent="Modèle choisi : "+best.name+" · "+best.count+" worker(s) actif(s)"+(specialist?" · adapté au style":" · meilleur modèle disponible en repli");
+ return [best.name];
 }
 
 const API="https://aihorde.net/api/v2";
@@ -262,7 +259,7 @@ async function hordeRequest(path,options={}){
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function generateOne(fullPrompt,width,height,seed,index,total,steps,forcedModel=null){
  if($("engineMode").value==="local")return generateLocalOne(fullPrompt,width,height,seed,index,total,steps);
- const params={width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps:Math.max(16,Math.min(20,steps)),n:1,cfg_scale:7,sampler_name:"k_dpmpp_2m",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})};
+ const chosenName=forcedModel||(selectedModels()[0]||"");const isXL=/sdxl|stable diffusion xl|animagine|illustrious|juggernaut|realvis|epicrealism|albedobase/i.test(chosenName);const params={width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps:Math.max(16,Math.min(20,steps)),n:1,cfg_scale:isXL?6.5:7,sampler_name:"k_euler",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})};
  const models=forcedModel?[forcedModel]:selectedModels();const allowAdult=$("adultMode").checked;const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params,...(models.length?{models}:{}),...(referenceImage?{source_image:referenceImage,source_processing:referenceMask?"inpainting":"img2img",...(referenceMask?{source_mask:referenceMask}:{})}:{}),nsfw:allowAdult,censor_nsfw:!allowAdult,shared:true})});
  if(!submitted.id)throw Error(submitted.message||"Le service n'a pas accepté la demande.");
  const id=submitted.id;const started=Date.now();let pollDelay=4000;let lastQueue=-1;
@@ -291,9 +288,23 @@ async function generate(){
  if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}
  busy=true;const btn=$("generate");btn.disabled=true;$("engineMode").disabled=true;btn.textContent="✦ Génération en cours…";$("progress").style.display="block";
  const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value),steps=Number($("speed").value);
- const defaultNegative="worst quality, low quality, lowres, blurry, out of focus, jpeg artifacts, compression artifacts, bad anatomy, bad proportions, deformed hands, poorly drawn hands, fused fingers, extra fingers, missing fingers, extra arms, extra legs, malformed limbs, asymmetrical eyes, cross-eyed, duplicate person, duplicate limbs, disfigured, cropped head, out of frame, text, subtitles, watermark, logo, signature";
+ const intent=modelIntent();
+ const animeStyle=intent==="anime"||/anime|manga|illustration japonaise/i.test(style);
+ const photoStyle=intent==="photo"||/photorealistic|professional photograph/i.test(style);
+ const defaultNegative=animeStyle
+  ?"worst quality, low quality, lowres, blurry, jpeg artifacts, bad anatomy, bad proportions, deformed hands, poorly drawn hands, fused fingers, extra fingers, missing fingers, extra limbs, malformed limbs, asymmetrical eyes, cross-eyed, duplicate person, messy lineart, muddy colors, text, watermark, logo, signature"
+  :"worst quality, low quality, lowres, blurry, out of focus, jpeg artifacts, bad anatomy, bad proportions, deformed hands, poorly drawn hands, fused fingers, extra fingers, missing fingers, extra limbs, malformed limbs, asymmetrical eyes, cross-eyed, duplicate person, unnatural skin, plastic skin, text, watermark, logo, signature";
  const userNegative=$("negative").value.trim();
- const faceTerms=$("faceDetail").checked?"natural facial anatomy, well-proportioned face, symmetrical realistic eyes, detailed iris, natural skin texture, finely rendered facial features":"";const positivePrompt=[prompt,style,faceTerms,"masterpiece, best quality, highly detailed, carefully composed, strong subject focus, coherent anatomy, refined details, crisp clean rendering, balanced composition, professional lighting, rich controlled colors"].filter(Boolean).join(", ");const negativePrompt=[userNegative,defaultNegative].filter(Boolean).join(", ");const fullPrompt=positivePrompt+"###"+negativePrompt;
+ const faceTerms=$("faceDetail").checked&&/(woman|man|girl|boy|person|portrait|character|visage|femme|homme|fille|garçon|personnage)/i.test(prompt)
+  ?(animeStyle?"expressive well-drawn eyes, balanced facial proportions, clean facial features":"natural facial anatomy, realistic eye alignment, balanced facial proportions, detailed but natural skin texture"):"";
+ const qualityTerms=animeStyle
+  ?"masterpiece, best quality, highly detailed anime illustration, clean lineart, intentional character design, coherent anatomy, polished shading, clear silhouette, detailed background"
+  :photoStyle
+  ?"high quality professional photograph, natural lighting, realistic materials, accurate perspective, lifelike details, coherent anatomy, sharp subject focus"
+  :"masterpiece, best quality, highly detailed, coherent anatomy, refined details, clean rendering, intentional composition, balanced lighting, rich controlled colors";
+ const positivePrompt=[prompt,style,faceTerms,qualityTerms].filter(Boolean).join(", ");
+ const negativePrompt=[userNegative,defaultNegative].filter(Boolean).join(", ");
+ const fullPrompt=positivePrompt+"###"+negativePrompt;
  const baseSeed=$("seed").value.trim()?Number($("seed").value)>>>0:null;
  let next=0,completed=0,failed=0;const errors=[];
  const worker=async()=>{while(true){const index=next++;if(index>=count)return;const seed=baseSeed===null?Math.floor(Math.random()*2147483647):(baseSeed+index)>>>0;status("Préparation des images · "+completed+"/"+count+" terminée · maximum 2 tâches simultanées.");try{try{await generateOne(fullPrompt,width,height,seed,index+1,count,steps);}catch(firstError){if(firstError.code!=="CENSORED")throw firstError;const excluded=selectedModels();const alternative=activeModels.filter(m=>Number(m.count??1)>0&&!excluded.includes(m.name)).sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];if(!alternative)throw Error("Image censurée. Aucun autre modèle actif disponible pour réessayer.");status("Image censurée : nouvelle tentative avec "+alternative.name+"…");await generateOne(fullPrompt,width,height,seed,index+1,count,steps,alternative.name);}completed++;status(completed+"/"+count+" image(s) terminée(s) · génération en cours…","ok");}catch(error){failed++;errors.push("Image "+(index+1)+" : "+error.message);status("Image "+(index+1)+" : "+error.message,"error");}}};
