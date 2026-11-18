@@ -200,6 +200,8 @@ def generate(req: GenerateRequest):
         raise HTTPException(400, "Largeur et hauteur doivent être des multiples de 8.")
     if MODEL_ID == "segmind/tiny-sd" and (req.width > 512 or req.height > 512):
         raise HTTPException(413, "Configuration légère : résolution maximale 512 × 512. Choisis 512 px ou moins.")
+    if req.source_mask and MODEL_ID == "segmind/tiny-sd":
+        raise HTTPException(507, "L'inpainting local nécessite un modèle plus lourd. Il est désactivé sur le profil mémoire léger pour éviter de saturer le PC.")
     if MODEL_ID == "segmind/tiny-sd" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 1.2):
         raise HTTPException(507, "RAM insuffisante pour la génération locale légère. Ferme les applications ou utilise un ordinateur avec davantage de mémoire.")
     with LOCK:
