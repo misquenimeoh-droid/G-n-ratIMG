@@ -3,7 +3,7 @@ IMAGINA Local Engine — moteur Python local (GPU NVIDIA recommandé).
 Démarrage : start_windows.bat ou python local_engine.py
 Modèle par défaut : stabilityai/sdxl-turbo (téléchargement initial depuis Hugging Face).
 """
-import base64, io, os, threading, time, importlib.util
+import base64, io, os, threading, time, importlib.util, ctypes, sys
 from typing import Optional
 import torch
 from PIL import Image
@@ -12,9 +12,58 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image, AutoPipelineForInpainting, EulerAncestralDiscreteScheduler
 
-MODEL_ID = os.getenv("IMAGINA_MODEL_ID", "stabilityai/sdxl-turbo")
-INPAINT_MODEL_ID = os.getenv("IMAGINA_INPAINT_MODEL_ID", "diffusers/stable-diffusion-xl-1.0-inpainting-0.1")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+def _system_memory():
+    try:
+        if sys.platform == "win32":
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                            ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                            ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                            ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+            status = MEMORYSTATUSEX()
+            status.dwLength = ctypes.sizeof(status)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                return round(status.ullTotalPhys / 1024**3, 1), round(status.ullAvailPhys / 1024**3, 1)
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        available = os.sysconf("SC_AVPHYS_PAGES")
+        return round(pages * page_size / 1024**3, 1), round(available * page_size / 1024**3, 1)
+    except Exception:
+        return None, None
+
+def _hardware_snapshot():
+    total_ram, available_ram = _system_memory()
+    gpu = None
+    vram = None
+    if torch.cuda.is_available():
+        try:
+            props = torch.cuda.get_device_properties(0)
+            gpu = props.name
+            vram = round(props.total_memory / 1024**3, 1)
+        except Exception:
+            pass
+    custom_model = os.getenv("IMAGINA_MODEL_ID")
+    if custom_model:
+        model = custom_model
+        reason = "Modèle défini manuellement par IMAGINA_MODEL_ID"
+    elif DEVICE == "cuda" and (vram or 0) >= 8 and (total_ram or 0) >= 12:
+        model = "stabilityai/sdxl-turbo"
+        reason = "SDXL Turbo activé : GPU et RAM suffisants détectés"
+    else:
+        model = "segmind/tiny-sd"
+        reason = "Tiny-SD sélectionné automatiquement pour limiter l'utilisation mémoire"
+    inpaint = os.getenv("IMAGINA_INPAINT_MODEL_ID", "stable-diffusion-v1-5/stable-diffusion-inpainting")
+    return {"device": DEVICE, "cuda": torch.cuda.is_available(), "gpu": gpu, "vram_gb": vram,
+            "total_ram_gb": total_ram, "available_ram_gb": available_ram, "model": model,
+            "model_reason": reason, "inpaint_model": inpaint,
+            "recommended_resolution": 512 if model == "segmind/tiny-sd" else 768}
+
+HARDWARE = _hardware_snapshot()
+MODEL_ID = HARDWARE["model"]
+INPAINT_MODEL_ID = HARDWARE["inpaint_model"]
 DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 PIPELINES = {}
 LOCK = threading.Lock()
@@ -64,7 +113,13 @@ def load_pipe(kind: str):
         pipe = AutoPipelineForInpainting.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=True)
     if hasattr(pipe, "scheduler") and kind != "inpaint":
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-    pipe = pipe.to(DEVICE)
+    if DEVICE == "cuda" and ((HARDWARE.get("vram_gb") or 0) < 6 or (HARDWARE.get("total_ram_gb") or 0) < 10):
+        try:
+            pipe.enable_sequential_cpu_offload()
+        except Exception:
+            pipe.enable_model_cpu_offload()
+    else:
+        pipe = pipe.to(DEVICE)
     try:
         pipe.enable_attention_slicing()
         pipe.enable_vae_slicing()
@@ -81,13 +136,7 @@ def load_pipe(kind: str):
 
 @app.get("/api/health")
 def health():
-    return {
-        "ok": True, "device": DEVICE, "cuda": torch.cuda.is_available(),
-        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
-        "model": MODEL_ID, "inpaint_model": INPAINT_MODEL_ID,
-        "pipelines_loaded": list(PIPELINES.keys()),
-        "torch": torch.__version__
-    }
+    return {"ok": True, **HARDWARE, "pipelines_loaded": list(PIPELINES.keys()), "torch": torch.__version__}
 
 def _module_check(module: str, weight_path: str):
     try:
@@ -120,11 +169,8 @@ def diagnostics():
             free_vram = round(torch.cuda.mem_get_info()[0] / (1024 ** 3), 2)
         except Exception:
             pass
-    return {"ok": True, "device": DEVICE, "cuda": torch.cuda.is_available(),
-            "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
-            "free_vram_gb": free_vram, "torch": torch.__version__,
-            "model": MODEL_ID, "inpaint_model": INPAINT_MODEL_ID,
-            "pipelines_loaded": list(PIPELINES.keys()), "optional": optional}
+    return {"ok": True, **HARDWARE, "free_vram_gb": free_vram,
+            "torch": torch.__version__, "pipelines_loaded": list(PIPELINES.keys()), "optional": optional}
 
 @app.post("/api/diagnostics/model")
 def diagnostics_load_model(payload: dict):
@@ -133,6 +179,8 @@ def diagnostics_load_model(payload: dict):
         raise HTTPException(400, "Type de modèle invalide : text ou inpaint attendu.")
     with LOCK:
         try:
+            if kind == "text" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 1.2):
+                raise HTTPException(507, "Mémoire vive insuffisante pour charger le modèle local. Ferme les applications et vérifie que le PC dispose d'au moins 6 Go de RAM (8 Go conseillés), ou utilise le moteur cloud.")
             load_pipe(kind)
             return {"ok": True, "kind": kind, "device": DEVICE,
                     "model": INPAINT_MODEL_ID if kind == "inpaint" else MODEL_ID}
@@ -147,6 +195,10 @@ def generate(req: GenerateRequest):
         raise HTTPException(400, "Décris l’image avant de lancer la génération.")
     if req.width % 8 or req.height % 8:
         raise HTTPException(400, "Largeur et hauteur doivent être des multiples de 8.")
+    if MODEL_ID == "segmind/tiny-sd" and (req.width > 512 or req.height > 512):
+        raise HTTPException(413, "Configuration légère : résolution maximale 512 × 512. Choisis 512 px ou moins.")
+    if MODEL_ID == "segmind/tiny-sd" and ((HARDWARE.get("total_ram_gb") or 0) < 5.5 or (HARDWARE.get("available_ram_gb") or 0) < 1.2):
+        raise HTTPException(507, "RAM insuffisante pour la génération locale légère. Ferme les applications ou utilise un ordinateur avec davantage de mémoire.")
     with LOCK:
         try:
             actual_seed = req.seed if req.seed is not None else int(time.time_ns() % 2**31)
