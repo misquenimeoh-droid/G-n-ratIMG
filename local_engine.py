@@ -208,7 +208,8 @@ def generate(req: GenerateRequest):
             generator = torch.Generator(device=DEVICE).manual_seed(actual_seed)
             guidance = 0.0 if MODEL_ID == "stabilityai/sdxl-turbo" else 7.5
             common = dict(prompt=req.prompt, negative_prompt=req.negative_prompt or None,
-                          width=req.width, height=req.height, num_inference_steps=req.steps,
+                          width=req.width, height=req.height,
+                          num_inference_steps=min(4, req.steps) if MODEL_ID == "stabilityai/sdxl-turbo" else req.steps,
                           generator=generator)
             if req.source_image:
                 source = decode_image(req.source_image).resize((req.width, req.height), Image.Resampling.LANCZOS)
