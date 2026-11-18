@@ -19,7 +19,7 @@ DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 PIPELINES = {}
 LOCK = threading.Lock()
 app = FastAPI(title="IMAGINA Local Engine", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://misquenimeoh-droid.github.io", "http://localhost:7860", "http://127.0.0.1:7860"], allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=4000)
@@ -97,7 +97,8 @@ def generate(req: GenerateRequest):
         raise HTTPException(400, "Largeur et hauteur doivent être des multiples de 8.")
     with LOCK:
         try:
-            generator = torch.Generator(device=DEVICE).manual_seed(req.seed if req.seed is not None else int(time.time_ns() % 2**31))
+            actual_seed = req.seed if req.seed is not None else int(time.time_ns() % 2**31)
+            generator = torch.Generator(device=DEVICE).manual_seed(actual_seed)
             common = dict(prompt=req.prompt, negative_prompt=req.negative_prompt or None,
                           width=req.width, height=req.height, num_inference_steps=req.steps,
                           generator=generator)
@@ -117,7 +118,7 @@ def generate(req: GenerateRequest):
                 result = pipe(**common, guidance_scale=0.0).images[0]
             return {"ok": True, "image": encode_image(result), "device": DEVICE,
                     "model": INPAINT_MODEL_ID if req.source_mask else MODEL_ID,
-                    "seed": req.seed}
+                    "seed": actual_seed}
         except HTTPException:
             raise
         except torch.cuda.OutOfMemoryError:
