@@ -23,7 +23,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;colo
 <body>
 <header><div class="brand">IMAGINA<b>✦</b><small>AI IMAGE STUDIO</small></div><div class="header-right"><span class="statuspill"><i class="dot"></i>Studio créatif</span></div></header>
 <main>
-<section class="hero"><div class="eyebrow">Votre studio de création IA</div><h1>Donnez vie à <span>vos idées.</span></h1><p>Créez des illustrations, des portraits, des univers et des images photoréalistes. Ajustez chaque détail et téléchargez vos créations en haute qualité.</p></section>
+<section class="hero"><div class="eyebrow">Votre studio de création IA</div><h1>Donnez vie à <span>vos idées.</span></h1><p>Créez gratuitement des illustrations et des portraits grâce à un réseau communautaire de GPU bénévoles. L’attente dépend des serveurs disponibles.</p></section>
 <div class="workspace">
 <aside class="panel">
 <div class="panelhead"><h2>Créer une image</h2><span class="step">01 / PROMPT</span></div>
@@ -32,15 +32,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;colo
 <button class="chip active" data-style="highly detailed digital illustration">Illustration</button><button class="chip" data-style="anime illustration, beautiful detailed anime art">Anime</button><button class="chip" data-style="semi-realistic anime digital painting">Anime réaliste</button><button class="chip" data-style="photorealistic photography, natural skin texture">Photo réaliste</button><button class="chip" data-style="cinematic concept art, epic atmosphere">Cinématique</button><button class="chip" data-style="high-end 3D render, octane render">3D</button><button class="chip" data-style="Japanese manga ink illustration">Manga</button><button class="chip" data-style="watercolor illustration on textured paper">Aquarelle</button><button class="chip" data-style="elegant fantasy art">Fantasy</button><button class="chip" data-style="minimal clean vector illustration">Vectoriel</button>
 </div></div>
 <div class="field"><label for="negative">Éléments à éviter <span class="hint">Facultatif</span></label><input id="negative" placeholder="flou, doigts déformés, texte illisible, watermark..."></div>
-<div class="field"><label for="model">Modèle IA</label><select id="model">
-<option value="black-forest-labs/flux.2-pro">FLUX 2 Pro — qualité élevée</option>
-<option value="black-forest-labs/flux.2-max">FLUX 2 Max — détails avancés</option>
-<option value="openai/gpt-image-2">GPT Image 2 — polyvalent</option>
-<option value="google/gemini-3.1-flash-image">Gemini Flash Image — rapide</option>
-<option value="bytedance/seedream-4.5">Seedream 4.5 — création artistique</option>
-<option value="ideogram-ai/ideogram-v4-quality">Ideogram V4 — typographie</option>
-<option value="black-forest-labs/flux.1-schnell">FLUX Schnell — rapide</option>
-</select><div class="hint" style="margin-top:5px">Les modèles et leur disponibilité dépendent de votre compte fournisseur.</div></div>
+<div class="field"><label>Service de génération</label><div class="notice" style="margin:0">AI Horde — réseau communautaire de GPU bénévoles. Aucun abonnement ni clé API payante requis. Les demandes anonymes passent après celles des comptes enregistrés.</div></div>
 <div class="grid2">
 <div class="field"><label for="ratio">Format</label><select id="ratio"><option value="1:1">Carré · 1:1</option><option value="2:3">Portrait · 2:3</option><option value="3:2">Paysage · 3:2</option><option value="9:16">Story · 9:16</option><option value="16:9">Cinéma · 16:9</option><option value="3:4">Portrait · 3:4</option><option value="4:3">Paysage · 4:3</option></select></div>
 <div class="field"><label for="quality">Taille</label><select id="quality"><option value="768">Standard · 768 px</option><option value="1024" selected>Élevée · 1024 px</option><option value="1280">Très élevée · 1280 px</option></select></div>
@@ -49,9 +41,8 @@ footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;colo
 <div class="field"><label for="count">Variations</label><select id="count"><option value="1">1 image</option><option value="2">2 images</option><option value="3">3 images</option><option value="4">4 images</option></select></div>
 <div class="field"><label for="seed">Seed <span class="hint">Aléatoire si vide</span></label><input id="seed" type="number" min="0" max="2147483647" placeholder="Aléatoire"></div>
 </div>
-<div class="field"><label for="api">Clé API Pollinations <span class="hint">Requise</span></label><div class="keybox"><input id="api" type="password" autocomplete="off" placeholder="sk_…"><button class="reveal" id="reveal" type="button">Afficher</button></div><div class="keyhelp">Obtenez une clé sur <a href="https://enter.pollinations.ai/keys" target="_blank" rel="noopener">enter.pollinations.ai</a>. Elle reste uniquement dans cette page et n'est jamais enregistrée.</div></div>
-<div class="notice">La génération utilise Pollinations et peut consommer le solde associé à votre clé API. Vérifiez les tarifs et les autorisations de modèles avant de lancer plusieurs images. Ne collez jamais votre clé dans un dépôt GitHub.</div>
-<button class="primary" id="generate">✦ &nbsp;Générer mes images</button><div class="progress" id="progress"><i></i></div><div class="status" id="status" role="status" aria-live="polite"></div>
+<div class="notice">Mode gratuit : IMAGINA envoie les demandes anonymement à AI Horde. Le temps d’attente dépend des bénévoles connectés ; le service peut être lent ou temporairement indisponible. Les images sont générées par des modèles open source et la qualité varie selon les machines disponibles. Pour une meilleure priorité, un compte AI Horde gratuit est facultatif.</div>
+<button class="primary"/> id="generate">✦ &nbsp;Générer mes images</button><div class="progress" id="progress"><i></i></div><div class="status" id="status" role="status" aria-live="polite"></div>
 </aside>
 <section>
 <div class="galleryhead"><div><h2>Votre galerie</h2><p id="gallerycount">Vos créations apparaîtront ici</p></div><div class="actions"><button class="secondary" id="downloadall">Télécharger tout</button><button class="secondary" id="clear">Vider la galerie</button></div></div>
@@ -59,28 +50,56 @@ footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;colo
 </section>
 </div>
 </main>
-<footer><span>IMAGINA · AI IMAGE STUDIO</span><span>Les générations sont fournies par un service tiers. Aucun résultat n'est garanti.</span></footer>
+<footer><span>IMAGINA · AI IMAGE STUDIO</span><span>Génération communautaire gratuite · file d’attente variable · aucun crédit payant requis.</span></footer>
 <div class="modal" id="modal"><button class="secondary" id="closemodal">Fermer ✕</button><img id="modalimg" alt="Aperçu de l'image générée"></div><div class="toast" id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);let style="highly detailed digital illustration";let images=[];let busy=false;
-const styles=document.querySelectorAll(".chip");styles.forEach(b=>b.addEventListener("click",()=>{styles.forEach(x=>x.classList.remove("active"));b.classList.add("active");style=b.dataset.style;}));
-$("prompt").addEventListener("input",()=>{$("counter").textContent=$("prompt").value.length+" / 1500";});
-$("reveal").addEventListener("click",()=>{const x=$("api");x.type=x.type==="password"?"text":"password";$("reveal").textContent=x.type==="password"?"Afficher":"Masquer";});
-function dimensions(r,s){const [w,h]=r.split(":").map(Number);const max=Number(s);if(w>=h)return [max,Math.max(256,Math.round(max*h/w/64)*64)];return [Math.max(256,Math.round(max*w/h/64)*64),max];}
+const API="https://aihorde.net/api/v2";
+const ANON_KEY="0000000000";
+const CLIENT_AGENT="IMAGINA:1.0:github.com/misquenimeoh-droid/G-n-ratIMG";
+document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");style=b.dataset.style;}));
+$("prompt").addEventListener("input",()=>$("counter").textContent=$("prompt").value.length+" / 1500");
+function dimensions(r,s){const [w,h]=r.split(":").map(Number);const max=Math.min(Number(s),1024);if(w>=h)return [Math.max(256,Math.round(max*w/Math.max(w,h)/64)*64),Math.max(256,Math.round(max*h/Math.max(w,h)/64)*64)];return [Math.max(256,Math.round(max*w/Math.max(w,h)/64)*64),Math.max(256,Math.round(max*h/Math.max(w,h)/64)*64)];}
 function status(msg,type=""){$("status").textContent=msg;$("status").className="status "+type;}
 function toast(msg){$("toast").textContent=msg;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",2300);}
 function updateCount(){$("gallerycount").textContent=images.length?images.length+" image"+(images.length>1?"s":"")+" dans cette session":"Vos créations apparaîtront ici";}
 function saveBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
-function addImage(url,prompt,seed){const id=crypto.randomUUID();images.unshift({id,url,prompt,seed});const tile=document.createElement("article");tile.className="tile";tile.dataset.id=id;const img=document.createElement("img");img.src=url;img.alt=prompt;img.loading="lazy";img.addEventListener("click",()=>{$("modalimg").src=url;$("modal").classList.add("open");});const foot=document.createElement("div");foot.className="tilefoot";const label=document.createElement("span");label.textContent=prompt;label.title=prompt;const tools=document.createElement("div");tools.className="tiletools";const copy=document.createElement("button");copy.textContent="Prompt";copy.title="Copier le prompt";copy.onclick=()=>{navigator.clipboard?.writeText(prompt);toast("Prompt copié.");};const dl=document.createElement("button");dl.textContent="↓";dl.title="Télécharger";dl.onclick=async()=>{try{const r=await fetch(url);if(!r.ok)throw Error();saveBlob(await r.blob(),"imagina-"+id.slice(0,8)+".png");}catch(e){window.open(url,"_blank","noopener");}};tools.append(copy,dl);foot.append(label,tools);tile.append(img,foot);const empty=$("gallery").querySelector(".empty");if(empty)empty.remove();$("gallery").prepend(tile);updateCount();}
-async function generate(){if(busy)return;const prompt=$("prompt").value.trim(),key=$("api").value.trim();if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}if(!key){status("Ajoutez votre clé API Pollinations pour lancer la génération.","error");$("api").focus();return;}if(!/^sk_/.test(key)){status("La clé doit être une clé secrète Pollinations commençant par sk_.","error");return;}
-busy=true;const btn=$("generate");btn.disabled=true;btn.textContent="Génération en cours…";$("progress").style.display="block";const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value);let completed=0,errors=[];
-try{for(let i=0;i<count;i++){status("Création de l'image "+(i+1)+" sur "+count+"…");const full=[prompt,style,$("negative").value.trim()?"Avoid: "+$("negative").value.trim():""].filter(Boolean).join(", ");const params=new URLSearchParams({model:$("model").value,width:String(width),height:String(height),seed:$("seed").value.trim()?String((Number($("seed").value)+i)>>>0):String(Math.floor(Math.random()*2147483647)),nologo:"true"});const url="https://gen.pollinations.ai/image/"+encodeURIComponent(full)+"?"+params.toString();const response=await fetch(url,{headers:{Authorization:"Bearer "+key,Accept:"image/*"}});if(!response.ok){let detail="";try{detail=(await response.text()).slice(0,260);}catch(e){}if(response.status===401)throw Error("Clé API invalide ou non autorisée (401).");if(response.status===402)throw Error("Solde ou budget API insuffisant (402).");if(response.status===403)throw Error("Accès refusé : vérifiez les permissions de votre clé ou du modèle (403).");throw Error("Le fournisseur a répondu "+response.status+(detail?" — "+detail:"") );}const blob=await response.blob();if(!blob.type.startsWith("image/"))throw Error("Le fournisseur n'a pas retourné un fichier image.");const objectUrl=URL.createObjectURL(blob);addImage(objectUrl,prompt,params.get("seed"));completed++;status("Image "+completed+" sur "+count+" terminée.","ok");}
-if(completed===count)status("Terminé ! "+completed+" image"+(completed>1?"s":"")+" disponible"+(completed>1?"s":".") ,"ok");else status(completed+" image(s) créée(s). "+errors.join(" "),"error");
-}catch(e){status((completed?"Génération partielle ("+completed+" image(s)). ":"")+e.message,"error");}
-finally{busy=false;btn.disabled=false;btn.textContent="✦  Générer mes images";$("progress").style.display="none";}}
+function addImage(url,prompt,seed){const id=crypto.randomUUID();images.unshift({id,url,prompt,seed});const tile=document.createElement("article");tile.className="tile";tile.dataset.id=id;const img=document.createElement("img");img.src=url;img.alt=prompt;img.loading="lazy";img.addEventListener("click",()=>{$("modalimg").src=url;$("modal").classList.add("open");});const foot=document.createElement("div");foot.className="tilefoot";const label=document.createElement("span");label.textContent=prompt;label.title=prompt;const tools=document.createElement("div");tools.className="tiletools";const copy=document.createElement("button");copy.textContent="Prompt";copy.title="Copier le prompt";copy.onclick=()=>{navigator.clipboard?.writeText(prompt);toast("Prompt copié.");};const dl=document.createElement("button");dl.textContent="↓";dl.title="Télécharger";dl.onclick=async()=>{try{const r=await fetch(url);if(!r.ok)throw Error();saveBlob(await r.blob(),"imagina-"+id.slice(0,8)+".webp");}catch(e){window.open(url,"_blank","noopener");}};tools.append(copy,dl);foot.append(label,tools);tile.append(img,foot);const empty=$("gallery").querySelector(".empty");if(empty)empty.remove();$("gallery").prepend(tile);updateCount();}
+async function hordeRequest(path,options={}){const response=await fetch(API+path,{...options,headers:{"Content-Type":"application/json","apikey":ANON_KEY,"Client-Agent":CLIENT_AGENT,...(options.headers||{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw Error(body.message||body.error||("Erreur AI Horde HTTP "+response.status));return body;}
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function generateOne(fullPrompt,width,height,seed,index,total){
+ const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params:{width,height,steps:25,n:1,cfg_scale:7,sampler_name:"k_euler",seed:String(seed)},nsfw:false,censor_nsfw:true,shared:true})});
+ if(!submitted.id)throw Error(submitted.message||"Le service n'a pas accepté la demande.");
+ const id=submitted.id;let started=Date.now();let lastQueue=-1;
+ while(Date.now()-started<600000){
+  await wait(5000);
+  const check=await hordeRequest("/generate/check/"+encodeURIComponent(id));
+  if(check.faulted)throw Error("La génération a échoué sur les serveurs bénévoles. Réessayez avec un autre prompt ou plus tard.");
+  if(check.done){
+   const result=await hordeRequest("/generate/status/"+encodeURIComponent(id));
+   const generation=result.generations&&result.generations[0];
+   if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");
+   let imageUrl;
+   if(/^https?:\/\//i.test(generation.img))imageUrl=generation.img;
+   else imageUrl="data:image/webp;base64,"+generation.img;
+   addImage(imageUrl,$("prompt").value.trim(),seed);
+   return;
+  }
+  if(typeof check.queue_position==="number"&&check.queue_position!==lastQueue){lastQueue=check.queue_position;status("Image "+index+" sur "+total+" — position dans la file : "+lastQueue+". Les bénévoles traitent votre demande…");}
+  else status("Image "+index+" sur "+total+" — en attente d’un GPU bénévole…");
+ }
+ throw Error("La file d’attente dépasse 10 minutes. La demande peut être relancée plus tard.");
+}
+async function generate(){if(busy)return;const prompt=$("prompt").value.trim();if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}
+ busy=true;const btn=$("generate");btn.disabled=true;btn.textContent="En attente des GPU bénévoles…";$("progress").style.display="block";const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value);let completed=0;
+ try{for(let i=0;i<count;i++){const full=[prompt,style,$("negative").value.trim()?"### "+$("negative").value.trim():""].filter(Boolean).join(", ");const seed=$("seed").value.trim()?((Number($("seed").value)+i)>>>0):Math.floor(Math.random()*2147483647);status("Envoi de la demande "+(i+1)+" sur "+count+" à AI Horde…");await generateOne(full,width,height,seed,i+1,count);completed++;status("Image "+completed+" sur "+count+" terminée.","ok");}
+ status("Terminé ! "+completed+" image"+(completed>1?"s":"")+" disponible"+(completed>1?"s":"")+".","ok");
+ }catch(e){status((completed?"Génération partielle ("+completed+" image(s)). ":"")+e.message,"error");}
+ finally{busy=false;btn.disabled=false;btn.textContent="✦  Générer mes images";$("progress").style.display="none";}
+}
 $("generate").addEventListener("click",generate);
-$("clear").addEventListener("click",()=>{images.forEach(x=>URL.revokeObjectURL(x.url));images=[];$("gallery").innerHTML='<div class="empty" style="grid-column:1/-1"><div><div class="emptyicon">✧</div><strong>Galerie vide</strong><p>Vos prochaines créations apparaîtront ici.</p></div></div>';updateCount();status("Galerie vidée.");});
-$("downloadall").addEventListener("click",async()=>{if(!images.length){toast("Aucune image à télécharger.");return;}for(let i=images.length-1;i>=0;i--){const x=images[i];try{const r=await fetch(x.url);saveBlob(await r.blob(),"imagina-"+(i+1)+".png");}catch(e){window.open(x.url,"_blank","noopener");}}});
+$("clear").addEventListener("click",()=>{images.forEach(x=>{if(x.url.startsWith("blob:"))URL.revokeObjectURL(x.url);});images=[];$("gallery").innerHTML='<div class="empty" style="grid-column:1/-1"><div><div class="emptyicon">✧</div><strong>Galerie vide</strong><p>Vos prochaines créations apparaîtront ici.</p></div></div>';updateCount();status("Galerie vidée.");});
+$("downloadall").addEventListener("click",async()=>{if(!images.length){toast("Aucune image à télécharger.");return;}for(let i=images.length-1;i>=0;i--){const x=images[i];try{const r=await fetch(x.url);saveBlob(await r.blob(),"imagina-"+(i+1)+".webp");}catch(e){window.open(x.url,"_blank","noopener");}}});
 $("closemodal").addEventListener("click",()=>$("modal").classList.remove("open"));$("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").classList.remove("open");});
 </script>
 </body></html>
