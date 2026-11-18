@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101018">
+<title>IMAGINA — AI Image Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#0c0c12;--panel:#15151f;--panel2:#1d1d2a;--line:#2b2b3b;--text:#f5f4fa;--muted:#a5a3b5;--accent:#a78bfa;--accent2:#6d5ce8;--good:#69d6a5}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -10%,#292044 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+header{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,56px);position:sticky;top:0;background:#0c0c12eF;backdrop-filter:blur(14px);z-index:5}
+.brand{font-weight:900;letter-spacing:.16em;font-size:19px}.brand span{color:var(--accent)}.subbrand{font-size:11px;color:var(--muted);letter-spacing:.12em;margin-left:12px}
+.header-right{display:flex;gap:10px;align-items:center}.pill{border:1px solid var(--line);border-radius:999px;padding:7px 12px;color:var(--muted);font-size:12px}
+main{max-width:1400px;margin:auto;padding:34px clamp(16px,4vw,52px) 70px}.intro{margin-bottom:26px}.eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:800}.intro h1{font-size:clamp(30px,4vw,48px);line-height:1.08;margin:9px 0 10px;letter-spacing:-.04em}.intro p{color:var(--muted);max-width:700px;margin:0}
+.layout{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:22px;align-items:start}.panel{background:linear-gradient(160deg,#191925,#12121a);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 18px 50px #0003}.panel h2{font-size:16px;margin:0 0 17px}.field{margin:0 0 16px}.field label{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#d7d4e4;font-weight:700;margin-bottom:7px}.hint{font-weight:400;color:var(--muted)}
+textarea,input,select{width:100%;border:1px solid var(--line);background:#0d0d15;color:var(--text);border-radius:11px;padding:12px 13px;font:inherit;outline:none}textarea:focus,input:focus,select:focus{border-color:var(--accent)}textarea{min-height:120px;resize:vertical}input[type=password]{font-family:monospace}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}.chip{border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:#11111a;color:#d7d4e4;font-size:12px;cursor:pointer}.chip:hover,.chip.active{border-color:var(--accent);background:#30264b;color:#fff}
+button{font:inherit;cursor:pointer}.primary{width:100%;border:0;border-radius:12px;padding:14px 18px;color:white;font-weight:800;background:linear-gradient(110deg,var(--accent2),#a46df2);box-shadow:0 8px 24px #7755df44}.primary:disabled{opacity:.5;cursor:wait}.secondary{border:1px solid var(--line);background:#1b1b27;color:var(--text);border-radius:10px;padding:9px 12px;font-size:12px}.smallnote{font-size:11px;color:var(--muted);margin-top:10px}
+.righttop{display:flex;justify-content:space-between;align-items:center;margin:0 0 14px;gap:12px}.righttop h2{font-size:17px;margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.tile{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--panel);min-width:0}.tile img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:#101018}.tilefoot{padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}.tilefoot span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.empty{border:1px dashed #3a394d;border-radius:17px;min-height:320px;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted)}.empty strong{display:block;color:#e8e5f2;font-size:16px;margin-bottom:6px}.status{font-size:12px;color:var(--muted);margin-top:12px;min-height:20px}.status.error{color:#ff9c9c}.status.ok{color:var(--good)}
+.keyrow{display:flex;gap:7px}.keyrow input{min-width:0}.notice{background:#211d31;border:1px solid #453765;color:#cfc5ed;border-radius:12px;padding:11px 12px;font-size:11px;margin:12px 0 17px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.gallery{grid-template-columns:1fr}.subbrand{display:none}.panel{padding:16px}}
+</style>
+</head>
+<body>
+<header><div><span class="brand">IMAGINA<span>✦</span></span><span class="subbrand">AI IMAGE STUDIO</span></div><div class="header-right"><span class="pill">Studio créatif</span></div></header>
+<main>
+<section class="intro"><div class="eyebrow">Votre imagination, sans limites</div><h1>Créez l’image que vous imaginez.</h1><p>Décrivez votre idée, choisissez un style et lancez la génération. Vos créations restent dans cette session et peuvent être téléchargées.</p></section>
+<div class="layout">
+<aside class="panel">
+<h2>Paramètres de création</h2>
+<div class="field"><label for="prompt">Votre prompt <span class="hint">Soyez précis</span></label><textarea id="prompt" placeholder="Ex. : Une héroïne anime dans une ville futuriste sous la pluie, éclairage cinématographique, détails fins..."></textarea></div>
+<div class="field"><label>Styles rapides</label><div class="chips" id="styles">
+<button class="chip" data-style="anime illustration, highly detailed">Anime</button><button class="chip" data-style="semi-realistic digital illustration">Semi-réaliste</button><button class="chip" data-style="photorealistic, cinematic photography">Photoréaliste</button><button class="chip" data-style="epic fantasy concept art">Fantasy</button><button class="chip" data-style="high quality 3D render">3D</button><button class="chip" data-style="watercolor painting">Aquarelle</button><button class="chip" data-style="Japanese manga illustration">Manga</button><button class="chip" data-style="clean vector art">Vectoriel</button>
+</div></div>
+<div class="field"><label for="negative">Prompt négatif <span class="hint">Facultatif</span></label><input id="negative" placeholder="Ex. : flou, mauvaise anatomie, texte, watermark"></div>
+<div class="grid2">
+<div class="field"><label for="model">Modèle</label><select id="model"><option value="flux">Flux (défaut)</option><option value="turbo">Turbo (rapide)</option></select></div>
+<div class="field"><label for="ratio">Format</label><select id="ratio"><option value="1:1">Carré · 1:1</option><option value="2:3">Portrait · 2:3</option><option value="3:2">Paysage · 3:2</option><option value="9:16">Story · 9:16</option><option value="16:9">Cinéma · 16:9</option></select></div>
+</div>
+<div class="grid2">
+<div class="field"><label for="size">Résolution</label><select id="size"><option value="768">768 px</option><option value="1024" selected>1024 px</option></select></div>
+<div class="field"><label for="count">Nombre d’images</label><select id="count"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+</div>
+<div class="field"><label for="api">Clé API (facultative selon le fournisseur)</label><input id="api" type="password" placeholder="Votre clé API"></div>
+<div class="notice">La génération passe par un service tiers. Selon le fournisseur, une clé API, un compte ou des crédits peuvent être nécessaires. Ne partagez jamais votre clé et évitez de l’enregistrer sur un ordinateur public.</div>
+<button class="primary" id="generate">✦ Générer mes images</button><div class="status" id="status" aria-live="polite"></div>
+<p class="smallnote">Prototype web autonome. La disponibilité, les modèles et les limites dépendent du service d’image configuré.</p>
+</aside>
+<section>
+<div class="righttop"><h2>Votre galerie</h2><div class="actions"><button class="secondary" id="clear">Effacer la galerie</button></div></div>
+<div id="gallery" class="gallery"><div class="empty" style="grid-column:1/-1"><div><strong>Votre prochaine création commence ici</strong>Les images générées apparaîtront dans cet espace.</div></div></div>
+</section>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let chosenStyle="";
+document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");chosenStyle=b.dataset.style;}));
+function dimensions(r,s){let [w,h]=r.split(":").map(Number),base=Number(s);if(w>=h)return [base,Math.round(base*h/w/64)*64];return [Math.round(base*w/h/64)*64,base];}
+function safeName(s){return (s||"imagina").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40)||"imagina";}
+function setStatus(t,type=""){ $("status").textContent=t;$("status").className="status "+type;}
+function addImage(url,prompt,index){const tile=document.createElement("article");tile.className="tile";const img=document.createElement("img");img.loading="lazy";img.src=url;img.alt=prompt;const foot=document.createElement("div");foot.className="tilefoot";const label=document.createElement("span");label.textContent=prompt;const dl=document.createElement("button");dl.className="secondary";dl.textContent="Télécharger";dl.onclick=async()=>{try{const r=await fetch(url);const blob=await r.blob();const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`imagina-${safeName(prompt)}-${index+1}.png`;a.click();URL.revokeObjectURL(a.href);}catch(e){window.open(url,"_blank");}};foot.append(label,dl);tile.append(img,foot);$("gallery").prepend(tile);}
+async function generate(){const prompt=$("prompt").value.trim();if(!prompt){setStatus("Écrivez d’abord une description de l’image.","error");return;}
+const btn=$("generate");btn.disabled=true;btn.textContent="Génération en cours…";setStatus("Préparation de la génération…");$("gallery").querySelector(".empty")?.remove();
+const [width,height]=dimensions($("ratio").value,$("size").value),count=Number($("count").value),model=$("model").value,negative=$("negative").value.trim(),api=$("api").value.trim();
+try{for(let i=0;i<count;i++){setStatus(`Génération de l’image ${i+1}/${count}…`);const full=[prompt,chosenStyle,negative?`Avoid: ${negative}`:""].filter(Boolean).join(", ");const seed=Math.floor(Math.random()*1e9);const params=new URLSearchParams({width,height,model,seed,nologo:"true",enhance:"true"});if(api)params.set("key",api);
+const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?${params.toString()}`;
+const response=await fetch(url);if(!response.ok)throw new Error(`Le service a répondu ${response.status}. Vérifiez la disponibilité du fournisseur ou votre clé API.`);const blob=await response.blob();if(!blob.type.startsWith("image/"))throw new Error("La réponse du service n’est pas une image.");const objectUrl=URL.createObjectURL(blob);addImage(objectUrl,prompt,i);}
+setStatus("Génération terminée. Vous pouvez télécharger vos images.","ok");
+}catch(err){setStatus(err.message||"Une erreur est survenue pendant la génération.","error");}
+finally{btn.disabled=false;btn.textContent="✦ Générer mes images";}}
+$("generate").addEventListener("click",generate);
+$("clear").addEventListener("click",()=>{$("gallery").innerHTML='<div class="empty" style="grid-column:1/-1"><div><strong>Galerie vide</strong>Vos prochaines créations apparaîtront ici.</div></div>';setStatus("Galerie effacée.");});
+</script>
+</body></html>
