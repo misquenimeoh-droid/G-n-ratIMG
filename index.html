@@ -75,7 +75,7 @@ async function generateOne(fullPrompt,width,height,seed,index,total){
   await wait(5000);
   const check=await hordeRequest("/generate/check/"+encodeURIComponent(id));
   if(check.faulted)throw Error("La génération a échoué sur les serveurs bénévoles. Réessayez avec un autre prompt ou plus tard.");
-  if(check.done){
+  if(check.done===true||Number(check.finished||0)>=1){
    const result=await hordeRequest("/generate/status/"+encodeURIComponent(id));
    const generation=result.generations&&result.generations[0];
    if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");
