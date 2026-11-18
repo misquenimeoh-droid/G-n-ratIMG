@@ -105,12 +105,13 @@ def load_pipe(kind: str):
     if kind in PIPELINES:
         return PIPELINES[kind]
     model = INPAINT_MODEL_ID if kind == "inpaint" else MODEL_ID
+    safe_weights = model != "segmind/tiny-sd"
     if kind == "text":
-        pipe = AutoPipelineForText2Image.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=True)
+        pipe = AutoPipelineForText2Image.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=safe_weights)
     elif kind == "image":
-        pipe = AutoPipelineForImage2Image.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=True)
+        pipe = AutoPipelineForImage2Image.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=safe_weights)
     else:
-        pipe = AutoPipelineForInpainting.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=True)
+        pipe = AutoPipelineForInpainting.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=safe_weights)
     if hasattr(pipe, "scheduler") and kind != "inpaint":
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
     if DEVICE == "cuda" and ((HARDWARE.get("vram_gb") or 0) < 6 or (HARDWARE.get("total_ram_gb") or 0) < 10):
@@ -184,6 +185,8 @@ def diagnostics_load_model(payload: dict):
             load_pipe(kind)
             return {"ok": True, "kind": kind, "device": DEVICE,
                     "model": INPAINT_MODEL_ID if kind == "inpaint" else MODEL_ID}
+        except HTTPException:
+            raise
         except Exception as exc:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -203,6 +206,7 @@ def generate(req: GenerateRequest):
         try:
             actual_seed = req.seed if req.seed is not None else int(time.time_ns() % 2**31)
             generator = torch.Generator(device=DEVICE).manual_seed(actual_seed)
+            guidance = 0.0 if MODEL_ID == "stabilityai/sdxl-turbo" else 7.5
             common = dict(prompt=req.prompt, negative_prompt=req.negative_prompt or None,
                           width=req.width, height=req.height, num_inference_steps=req.steps,
                           generator=generator)
@@ -217,10 +221,10 @@ def generate(req: GenerateRequest):
                 else:
                     pipe = load_pipe("image")
                     result = pipe(**common, image=source, strength=req.strength,
-                                  guidance_scale=0.0).images[0]
+                                  guidance_scale=guidance).images[0]
             else:
                 pipe = load_pipe("text")
-                result = pipe(**common, guidance_scale=0.0).images[0]
+                result = pipe(**common, guidance_scale=guidance).images[0]
             return {"ok": True, "image": encode_image(result), "device": DEVICE,
                     "model": INPAINT_MODEL_ID if req.source_mask else MODEL_ID,
                     "seed": actual_seed}
