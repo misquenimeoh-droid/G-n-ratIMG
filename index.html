@@ -18,6 +18,31 @@ main{max-width:1500px;margin:auto;padding:35px clamp(14px,3.5vw,48px) 70px}.hero
 footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;color:#66657b;font-size:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.modal{position:fixed;inset:0;background:#05050beF;z-index:10;display:none;align-items:center;justify-content:center;padding:22px}.modal.open{display:flex}.modal img{max-width:min(94vw,1200px);max-height:88vh;object-fit:contain;border-radius:10px}.modal button{position:absolute;top:20px;right:22px}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#242238;border:1px solid #494362;border-radius:10px;padding:10px 15px;font-size:11px;z-index:12;display:none}
 @keyframes move{0%{transform:translateX(-110%)}100%{transform:translateX(330%)}}@keyframes appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.workspace{grid-template-columns:1fr}.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){header{height:62px}.brand small{display:none}.hero h1{font-size:34px}.gallery{grid-template-columns:1fr}.tile img{aspect-ratio:4/3}.panel{padding:15px}.galleryhead{align-items:flex-start;flex-direction:column}.empty{min-height:260px}}
+
+/* IMAGINA performance and usability refresh */
+:root{scroll-behavior:smooth}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
+.panel{box-shadow:0 18px 55px #0005;border:1px solid #ffffff12}
+.field label{display:flex;align-items:center;justify-content:space-between;gap:10px}
+textarea{min-height:116px;resize:vertical}
+.primary{min-height:48px;box-shadow:0 8px 24px #8b5cf633;transition:transform .18s,filter .18s}
+.primary:not(:disabled):hover{transform:translateY(-1px);filter:brightness(1.1)}
+.primary:disabled{opacity:.72;cursor:progress}
+.secondary{transition:border-color .18s,background .18s}
+.secondary:hover{border-color:var(--purple);background:#a78bfa18}
+.progress{overflow:hidden;border-radius:99px;background:#ffffff12}
+.progress i{display:block;width:38%;animation:imagina-progress 1.4s ease-in-out infinite}
+@keyframes imagina-progress{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
+.status{min-height:22px}
+.gallery{align-items:start}
+.tile{min-width:0;overflow:hidden;contain:content}
+.tile img{display:block;width:100%;background:#171725}
+.tilefoot span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reference-preview{max-width:100%}
+.performance-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.45}
+@media(min-width:1100px){.workspace{grid-template-columns:minmax(330px,390px) minmax(0,1fr);gap:26px}}
+@media(max-width:700px){header{padding-inline:16px}.workspace{padding-inline:12px}.hero{padding-inline:18px}.panel{border-radius:16px}.galleryhead .actions{width:100%;display:flex}.galleryhead .actions button{flex:1;min-width:0}.tiletools button{min-width:36px;min-height:36px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -41,6 +66,7 @@ footer{max-width:1500px;margin:0 auto;padding:0 clamp(14px,3.5vw,48px) 25px;colo
 <div class="field"><label for="count">Variations</label><select id="count"><option value="1">1 image</option><option value="2">2 images</option><option value="3">3 images</option><option value="4">4 images</option></select></div>
 <div class="field"><label for="seed">Seed <span class="hint">Aléatoire si vide</span></label><input id="seed" type="number" min="0" max="2147483647" placeholder="Aléatoire"></div>
 </div>
+<div class="field"><label for="speed">Vitesse et qualité</label><select id="speed"><option value="14">Rapide · 14 étapes</option><option value="18" selected>Équilibré · 18 étapes</option><option value="20">Détaillé · 20 étapes</option></select><div class="performance-note">Le mode rapide réduit le temps de calcul. Le mode détaillé demande davantage de travail au GPU. Deux images maximum sont traitées simultanément.</div></div>
 <div class="notice">Mode gratuit : résolution maximale de 576 px et paramètres allégés pour les demandes anonymes. Le temps d’attente dépend des bénévoles connectés ; le service peut être lent ou temporairement indisponible. Les images sont générées par des modèles open source et la qualité varie selon les machines disponibles.</div>
 <button class="primary" id="generate">✦ &nbsp;Générer mes images</button><div class="progress" id="progress"><i></i></div><div class="status" id="status" role="status" aria-live="polite"></div>
 </aside>
@@ -74,36 +100,68 @@ async function restoreGallery(){let restored=false;try{const db=await openGaller
 function saveBlob(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
 function persistGallery(){images.slice(0,16).forEach(item=>persistGalleryItem(item));}
 function addImage(url,prompt,seed,options={}){const id=options.id||crypto.randomUUID();const item={id,url,prompt,seed,createdAt:Date.now()};images.unshift(item);if(options.persist!==false)persistGalleryItem(item);const tile=document.createElement("article");tile.className="tile";tile.dataset.id=id;const img=document.createElement("img");img.src=url;img.alt=prompt;img.loading="lazy";img.addEventListener("click",()=>{$("modalimg").src=url;$("modal").classList.add("open");});const foot=document.createElement("div");foot.className="tilefoot";const label=document.createElement("span");label.textContent=prompt;label.title=prompt;const tools=document.createElement("div");tools.className="tiletools";const copy=document.createElement("button");copy.textContent="Prompt";copy.title="Copier le prompt";copy.onclick=()=>{navigator.clipboard?.writeText(prompt);toast("Prompt copié.");};const dl=document.createElement("button");dl.textContent="↓";dl.title="Télécharger";dl.onclick=async()=>{try{const response=await fetch(url);if(!response.ok)throw Error();saveBlob(await response.blob(),"imagina-"+id.slice(0,8)+".webp");}catch(e){window.open(url,"_blank","noopener");}};tools.append(copy,dl);foot.append(label,tools);tile.append(img,foot);const empty=$("gallery").querySelector(".empty");if(empty)empty.remove();$("gallery").prepend(tile);updateCount();}
-async function hordeRequest(path,options={}){const response=await fetch(API+path,{...options,headers:{"Content-Type":"application/json","apikey":ANON_KEY,"Client-Agent":CLIENT_AGENT,...(options.headers||{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw Error(body.message||body.error||("Erreur AI Horde HTTP "+response.status));return body;}
+async function hordeRequest(path,options={}){
+ const method=(options.method||"GET").toUpperCase();let attempt=0;
+ while(true){
+  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),25000);
+  try{
+   const response=await fetch(API+path,{...options,signal:controller.signal,headers:{"Content-Type":"application/json","apikey":ANON_KEY,"Client-Agent":CLIENT_AGENT,...(options.headers||{})}});
+   const body=await response.json().catch(()=>({}));
+   if(response.ok)return body;
+   const retryable=method==="GET"&&(response.status===429||response.status>=500);
+   if(retryable&&attempt<3){const retryAfter=Number(response.headers.get("Retry-After"));await wait(Number.isFinite(retryAfter)&&retryAfter>0?Math.min(retryAfter*1000,15000):Math.min(1000*Math.pow(2,attempt),8000));attempt++;continue;}
+   const message=body.message||body.error||("Erreur AI Horde HTTP "+response.status);
+   throw Error(response.status===429?"Trop de requêtes : patientez quelques secondes puis réessayez.":message);
+  }catch(error){
+   if(method==="GET"&&attempt<3&&(error.name==="AbortError"||error instanceof TypeError)){await wait(Math.min(1000*Math.pow(2,attempt),8000));attempt++;continue;}
+   if(error.name==="AbortError")throw Error("Le serveur met trop de temps à répondre. Réessayez.");
+   throw error;
+  }finally{clearTimeout(timeout);}
+ }
+}
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function generateOne(fullPrompt,width,height,seed,index,total){
- const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params:{width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps:20,n:1,cfg_scale:6,sampler_name:"k_euler",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})},...(referenceImage?{source_image:referenceImage,source_processing:"img2img"}:{}),nsfw:false,censor_nsfw:true,shared:true})});
+async function generateOne(fullPrompt,width,height,seed,index,total,steps){
+ const params={width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps,n:1,cfg_scale:6,sampler_name:"k_euler",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})};
+ const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params,...(referenceImage?{source_image:referenceImage,source_processing:"img2img"}:{}),nsfw:false,censor_nsfw:true,shared:true})});
  if(!submitted.id)throw Error(submitted.message||"Le service n'a pas accepté la demande.");
- const id=submitted.id;let started=Date.now();let lastQueue=-1;
- while(Date.now()-started<600000){
-  await wait(5000);
+ const id=submitted.id;const started=Date.now();let pollDelay=4000;let lastQueue=-1;
+ while(Date.now()-started<720000){
+  await wait(pollDelay);
   const check=await hordeRequest("/generate/check/"+encodeURIComponent(id));
-  if(check.faulted)throw Error("La génération a échoué sur les serveurs bénévoles. Réessayez avec un autre prompt ou plus tard.");
+  if(check.faulted)throw Error("La génération a échoué sur les serveurs bénévoles. Réessayez plus tard.");
   if(check.done===true||Number(check.finished||0)>=1){
    const result=await hordeRequest("/generate/status/"+encodeURIComponent(id));
    const generation=result.generations&&result.generations[0];
    if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");
-   let imageUrl;
-   if(/^https?:\/\//i.test(generation.img))imageUrl=generation.img;
-   else imageUrl="data:image/webp;base64,"+generation.img;
+   const imageUrl=/^https?:\/\//i.test(generation.img)?generation.img:"data:image/webp;base64,"+generation.img;
    addImage(imageUrl,$("prompt").value.trim(),seed);
    return;
   }
-  if(typeof check.queue_position==="number"&&check.queue_position!==lastQueue){lastQueue=check.queue_position;status("Image "+index+" sur "+total+" — position dans la file : "+lastQueue+". Les bénévoles traitent votre demande…");}
-  else status("Image "+index+" sur "+total+" — en attente d’un GPU bénévole…");
+  const queue=Number(check.queue_position);
+  if(Number.isFinite(queue)&&queue>=0&&queue!==lastQueue){lastQueue=queue;pollDelay=queue===0?3500:Math.min(9000,4500+queue*350);}
+  else pollDelay=Math.min(10000,pollDelay+500);
+  status("Image "+index+"/"+total+" · "+(Number.isFinite(queue)&&queue>=0?"position dans la file : "+queue:"GPU bénévole en cours")+" · "+steps+" étapes.");
  }
- throw Error("La file d’attente dépasse 10 minutes. La demande peut être relancée plus tard.");
+ throw Error("Attente supérieure à 12 minutes. Réessayez plus tard ; la disponibilité dépend des GPU bénévoles.");
 }
-async function generate(){if(busy)return;const prompt=$("prompt").value.trim();if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}
- busy=true;const btn=$("generate");btn.disabled=true;btn.textContent="En attente des GPU bénévoles…";$("progress").style.display="block";const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value);let completed=0;
- try{for(let i=0;i<count;i++){const defaultNegative="low quality, blurry, jpeg artifacts, malformed hands, extra fingers, missing fingers, distorted anatomy, asymmetrical eyes, duplicate limbs, text, watermark, logo";const userNegative=$("negative").value.trim();const full=[prompt,style,"high detail, coherent anatomy, clean rendering, intentional composition, professional lighting",(userNegative||defaultNegative)?"### "+(userNegative?userNegative+", ":"")+defaultNegative:""].filter(Boolean).join(", ");const seed=$("seed").value.trim()?((Number($("seed").value)+i)>>>0):Math.floor(Math.random()*2147483647);status("Envoi de la demande "+(i+1)+" sur "+count+" à AI Horde…");await generateOne(full,width,height,seed,i+1,count);completed++;status("Image "+completed+" sur "+count+" terminée.","ok");}
- status("Terminé ! "+completed+" image"+(completed>1?"s":"")+" disponible"+(completed>1?"s":"")+".","ok");
- }catch(e){status((completed?"Génération partielle ("+completed+" image(s)). ":"")+e.message,"error");}
+async function generate(){
+ if(busy)return;
+ const prompt=$("prompt").value.trim();
+ if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}
+ busy=true;const btn=$("generate");btn.disabled=true;btn.textContent="✦ Génération en cours…";$("progress").style.display="block";
+ const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value),steps=Number($("speed").value);
+ const defaultNegative="low quality, blurry, jpeg artifacts, malformed hands, extra fingers, missing fingers, distorted anatomy, asymmetrical eyes, duplicate limbs, text, watermark, logo";
+ const userNegative=$("negative").value.trim();
+ const fullPrompt=[prompt,style,"high detail, coherent anatomy, clean rendering, intentional composition, professional lighting",(userNegative?userNegative+", ":"")+defaultNegative].filter(Boolean).join(", ");
+ const baseSeed=$("seed").value.trim()?Number($("seed").value)>>>0:null;
+ let next=0,completed=0,failed=0;const errors=[];
+ const worker=async()=>{while(true){const index=next++;if(index>=count)return;const seed=baseSeed===null?Math.floor(Math.random()*2147483647):(baseSeed+index)>>>0;status("Préparation des images · "+completed+"/"+count+" terminée · maximum 2 tâches simultanées.");try{await generateOne(fullPrompt,width,height,seed,index+1,count,steps);completed++;status(completed+"/"+count+" image(s) terminée(s) · génération en cours…","ok");}catch(error){failed++;errors.push("Image "+(index+1)+" : "+error.message);status("Image "+(index+1)+" : "+error.message,"error");}}};
+ try{
+  await Promise.all(Array.from({length:Math.min(2,count)},worker));
+  if(failed===0)status("Terminé ! "+completed+" image(s) disponible(s).","ok");
+  else if(completed>0)status(completed+" image(s) réussie(s), "+failed+" échec(s). "+errors[0],"error");
+  else status("Aucune image n'a pu être générée. "+(errors[0]||"Réessayez."),"error");
+ }catch(error){status(error.message,"error");}
  finally{busy=false;btn.disabled=false;btn.textContent="✦  Générer mes images";$("progress").style.display="none";}
 }
 $("generate").addEventListener("click",generate);
