@@ -3,7 +3,7 @@ IMAGINA Local Engine — moteur Python local (GPU NVIDIA recommandé).
 Démarrage : start_windows.bat ou python local_engine.py
 Modèle par défaut : stabilityai/sdxl-turbo (téléchargement initial depuis Hugging Face).
 """
-import base64, io, os, threading, time
+import base64, io, os, threading, time, importlib.util
 from typing import Optional
 import torch
 from PIL import Image
@@ -88,6 +88,58 @@ def health():
         "pipelines_loaded": list(PIPELINES.keys()),
         "torch": torch.__version__
     }
+
+def _module_check(module: str, weight_path: str):
+    try:
+        installed = importlib.util.find_spec(module) is not None
+    except (ImportError, ValueError):
+        installed = False
+    weights = os.path.isfile(weight_path)
+    if installed and weights:
+        message = "dépendance et poids présents"
+    elif not installed and not weights:
+        message = "dépendance Python et poids pré-entraînés absents"
+    elif not installed:
+        message = "dépendance Python absente"
+    else:
+        message = "poids pré-entraînés absents"
+    return {"ready": installed and weights, "package": installed,
+            "weights": weights, "path": weight_path, "message": message}
+
+@app.get("/api/diagnostics")
+def diagnostics():
+    optional = {
+        "GFPGAN": _module_check("gfpgan",
+                                os.getenv("IMAGINA_GFPGAN_WEIGHTS", "weights/GFPGANv1.4.pth")),
+        "RealESRGAN": _module_check("realesrgan",
+                                    os.getenv("IMAGINA_REALESRGAN_WEIGHTS", "weights/RealESRGAN_x4plus.pth")),
+    }
+    free_vram = None
+    if torch.cuda.is_available():
+        try:
+            free_vram = round(torch.cuda.mem_get_info()[0] / (1024 ** 3), 2)
+        except Exception:
+            pass
+    return {"ok": True, "device": DEVICE, "cuda": torch.cuda.is_available(),
+            "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+            "free_vram_gb": free_vram, "torch": torch.__version__,
+            "model": MODEL_ID, "inpaint_model": INPAINT_MODEL_ID,
+            "pipelines_loaded": list(PIPELINES.keys()), "optional": optional}
+
+@app.post("/api/diagnostics/model")
+def diagnostics_load_model(payload: dict):
+    kind = payload.get("kind", "text")
+    if kind not in ("text", "inpaint"):
+        raise HTTPException(400, "Type de modèle invalide : text ou inpaint attendu.")
+    with LOCK:
+        try:
+            load_pipe(kind)
+            return {"ok": True, "kind": kind, "device": DEVICE,
+                    "model": INPAINT_MODEL_ID if kind == "inpaint" else MODEL_ID}
+        except Exception as exc:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            raise HTTPException(500, f"Chargement du modèle {kind} impossible : {type(exc).__name__}: {exc}")
 
 @app.post("/api/generate")
 def generate(req: GenerateRequest):
