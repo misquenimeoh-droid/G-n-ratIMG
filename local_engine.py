@@ -1,7 +1,7 @@
 """
-IMAGINA Local Engine — moteur Python local (GPU NVIDIA recommandé).
-Démarrage : start_windows.bat ou python local_engine.py
-Modèle par défaut : stabilityai/sdxl-turbo (téléchargement initial depuis Hugging Face).
+IMAGINA Local Engine — moteur Python local adaptatif.
+Détecte RAM/GPU : segmind/tiny-sd pour petites configurations, SDXL Turbo pour PC plus puissant.
+Premier lancement : téléchargement du modèle choisi depuis Hugging Face.
 """
 import base64, io, os, threading, time, importlib.util, ctypes, sys
 from typing import Optional
@@ -112,7 +112,7 @@ def load_pipe(kind: str):
         pipe = AutoPipelineForImage2Image.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=safe_weights)
     else:
         pipe = AutoPipelineForInpainting.from_pretrained(model, torch_dtype=DTYPE, use_safetensors=safe_weights)
-    if hasattr(pipe, "scheduler") and kind != "inpaint":
+    if hasattr(pipe, "scheduler") and kind != "inpaint" and model != "segmind/tiny-sd":
         pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
     if DEVICE == "cuda" and ((HARDWARE.get("vram_gb") or 0) < 6 or (HARDWARE.get("total_ram_gb") or 0) < 10):
         try:
