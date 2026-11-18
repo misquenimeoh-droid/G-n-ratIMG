@@ -19,5 +19,12 @@ if errorlevel 1 (
   exit /b 1
  )
 )
+python -m py_compile local_engine.py
+if errorlevel 1 (
+ echo.
+ echo Erreur de syntaxe Python dans local_engine.py. Copie le message ci-dessus.
+ pause
+ exit /b 1
+)
 python local_engine.py
 pause
