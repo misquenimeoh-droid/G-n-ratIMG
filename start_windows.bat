@@ -10,14 +10,14 @@ python -m pip install -r requirements-local.txt
 python -c "import torch" >nul 2>nul
 if errorlevel 1 (
  echo.
- echo PyTorch n'est pas installe dans cet environnement.
- echo Ouvre une deuxieme fenetre CMD puis execute :
- echo cd /d "%~dp0"
- echo .venv\Scripts\activate
- echo Installe la version adaptee a ton PC depuis https://pytorch.org/get-started/locally/
- echo Puis relance start_windows.bat.
- pause
- exit /b 1
+ echo PyTorch absent : installation de la version CPU de secours...
+ echo Pour activer ensuite un GPU NVIDIA, installe la version CUDA depuis https://pytorch.org/get-started/locally/
+ python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+ if errorlevel 1 (
+  echo Echec de l'installation automatique de PyTorch.
+  pause
+  exit /b 1
+ )
 )
 python local_engine.py
 pause
