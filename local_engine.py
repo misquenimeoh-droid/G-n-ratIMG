@@ -107,8 +107,9 @@ def generate(req: GenerateRequest):
                 if req.source_mask:
                     mask = decode_image(req.source_mask).convert("L").resize((req.width, req.height), Image.Resampling.NEAREST)
                     pipe = load_pipe("inpaint")
-                    result = pipe(**common, image=source, mask_image=mask,
-                                  strength=req.strength, guidance_scale=0.0).images[0]
+                    inpaint_args = {**common, "num_inference_steps": max(20, req.steps)}
+                    result = pipe(**inpaint_args, image=source, mask_image=mask,
+                                  strength=req.strength, guidance_scale=7.0).images[0]
                 else:
                     pipe = load_pipe("image")
                     result = pipe(**common, image=source, strength=req.strength,
