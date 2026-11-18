@@ -40,6 +40,16 @@ textarea{min-height:116px;resize:vertical}
 .tilefoot span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .reference-preview{max-width:100%}
 .performance-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.45}
+.compare-panel{border:1px solid #4b3b68;background:linear-gradient(145deg,#211a31,#12121d);border-radius:14px;padding:13px;margin-top:12px}
+.compare-panel h3{font-size:12px;margin:0 0 5px}.compare-panel p{font-size:10px;color:var(--muted);margin:0 0 9px}
+.compare-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.compare-card{min-width:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0d0d16}
+.compare-card img{width:100%;aspect-ratio:1;object-fit:contain;background:#08080e;display:block}
+.compare-card .compare-meta{padding:8px;font-size:10px;overflow-wrap:anywhere}
+.compare-votes{display:flex;gap:5px;margin-top:7px}.compare-votes button{flex:1;border:1px solid #39364e;background:#1a1927;color:#e5ddfa;border-radius:7px;padding:6px 3px;font-size:10px}
+.compare-votes button.selected{border-color:var(--green);background:#173528}
+.compare-status{font-size:11px;color:var(--muted);margin-top:8px}
+@media(max-width:520px){.compare-results{grid-template-columns:1fr}}
 @media(min-width:1100px){.workspace{grid-template-columns:minmax(330px,390px) minmax(0,1fr);gap:26px}}
 @media(max-width:700px){header{padding-inline:16px}.workspace{padding-inline:12px}.hero{padding-inline:18px}.panel{border-radius:16px}.galleryhead .actions{width:100%;display:flex}.galleryhead .actions button{flex:1;min-width:0}.tiletools button{min-width:36px;min-height:36px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -90,9 +100,12 @@ textarea{min-height:116px;resize:vertical}
 </div>
 <div class="field"><label for="speed">Vitesse et qualité</label><select id="speed"><option value="16">Rapide · 16 étapes</option><option value="18">Équilibré · 18 étapes</option><option value="20" selected>Détaillé · 20 étapes</option></select><div class="performance-note">Le mode rapide réduit le temps de calcul. Le mode détaillé demande davantage de travail au GPU. Deux images maximum sont traitées simultanément.</div></div>
 <div class="notice">Mode gratuit : résolution maximale de 576 px et paramètres allégés pour les demandes anonymes. Le temps d’attente dépend des bénévoles connectés ; le service peut être lent ou temporairement indisponible. Les images sont générées par des modèles open source et la qualité varie selon les machines disponibles.</div>
-<button class="primary" id="generate">✦ &nbsp;Générer mes images</button><div class="progress" id="progress"><i></i></div><div class="status" id="status" role="status" aria-live="polite"></div>
+<button class="primary" id="generate">✦ &nbsp;Générer mes images</button>
+<div class="compare-panel"><h3>Comparer les modèles actifs</h3><p>Teste les deux meilleurs modèles disponibles pour le style choisi. Même prompt, même seed et mêmes paramètres. Deux générations supplémentaires sont lancées sur les GPU bénévoles.</p><button class="secondary" id="compareModels" type="button" style="width:100%">⇄ Comparer 2 modèles</button><div id="compareStatus" class="compare-status" aria-live="polite">Les résultats et tes notes restent dans cette session.</div></div>
+<div class="progress" id="progress"><i></i></div><div class="status" id="status" role="status" aria-live="polite"></div>
 </aside>
 <section>
+<div id="compareResults" class="compare-results" aria-live="polite"></div>
 <div class="galleryhead"><div><h2>Votre galerie</h2><p id="gallerycount">Vos créations apparaîtront ici</p></div><div class="actions"><button class="secondary" id="downloadall">Télécharger tout</button><button class="secondary" id="clear">Vider la galerie</button></div></div>
 <div id="gallery" class="gallery"><div class="empty" style="grid-column:1/-1"><div><div class="emptyicon">✧</div><strong>Votre toile est prête</strong><p>Votre première création n'attend que votre imagination.</p></div></div></div>
 </section>
@@ -117,13 +130,14 @@ async function loadModels(){
 }
 function modelIntent(){
  const brief=($("prompt").value+" "+style+" "+(document.querySelector(".chip.active")?.textContent||"")).toLowerCase();
+ if(/anime réaliste|semi.?realistic anime|anime semi.?réaliste|game illustration/.test(brief))return "anime-realistic";
  if(/anime|manga|waifu|gacha|cel shading|lineart|personnage|illustration japonaise/.test(brief))return "anime";
  if(/photo|photoreal|réaliste|realistic|portrait photo|photographie|camera|objectif/.test(brief))return "photo";
  return "general";
 }
 function modelRank(model,intent){
  const name=model.name.toLowerCase();
- const match=intent==="anime"?/animagine|illustrious|pony|waifu|anime|anything|noobai/.test(name):intent==="photo"?/juggernaut|realvis|epicrealism|realistic|photoreal|albedobase/.test(name):/dreamshaper|juggernaut|sdxl|stable diffusion xl/.test(name);
+ const match=intent==="anime"?/animagine|illustrious|pony|waifu|anime|anything|noobai/.test(name):intent==="anime-realistic"?/meinamix|anylora|counterfeit|aam|hassaku|abyssorangemix|cetusmix|dreamshaper|animagine|illustrious/.test(name):intent==="photo"?/juggernaut|realvis|epicrealism|realistic|photoreal|albedobase/.test(name):/dreamshaper|juggernaut|sdxl|stable diffusion xl/.test(name);
  return (match?10000:0)+Math.min(model.count,500)*10;
 }
 function selectedModels(){
@@ -257,7 +271,7 @@ async function hordeRequest(path,options={}){
  }
 }
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function generateOne(fullPrompt,width,height,seed,index,total,steps,forcedModel=null){
+async function generateOne(fullPrompt,width,height,seed,index,total,steps,forcedModel=null,comparison=false){
  if($("engineMode").value==="local")return generateLocalOne(fullPrompt,width,height,seed,index,total,steps);
  const chosenName=forcedModel||(selectedModels()[0]||"");const isXL=/sdxl|stable diffusion xl|animagine|illustrious|juggernaut|realvis|epicrealism|albedobase/i.test(chosenName);const params={width:referenceSize?referenceSize.width:width,height:referenceSize?referenceSize.height:height,steps:Math.max(16,Math.min(20,steps)),n:1,cfg_scale:isXL?6.5:7,sampler_name:"k_euler",seed:String(seed),...(referenceImage?{denoising_strength:Number($("strength").value)}:{})};
  const models=forcedModel?[forcedModel]:selectedModels();const allowAdult=$("adultMode").checked;const submitted=await hordeRequest("/generate/async",{method:"POST",body:JSON.stringify({prompt:fullPrompt,params,...(models.length?{models}:{}),...(referenceImage?{source_image:referenceImage,source_processing:referenceMask?"inpainting":"img2img",...(referenceMask?{source_mask:referenceMask}:{})}:{}),nsfw:allowAdult,censor_nsfw:!allowAdult,shared:true})});
@@ -272,8 +286,8 @@ async function generateOne(fullPrompt,width,height,seed,index,total,steps,forced
    const generation=result.generations&&result.generations[0];
    if(!generation||!generation.img)throw Error("La tâche est terminée, mais aucune image n'a été retournée.");const metadata=Array.isArray(generation.gen_metadata)?generation.gen_metadata:[];if(metadata.some(item=>String(item.type||"").toLowerCase().includes("censor"))){const censored=Error("Image censurée par le worker.");censored.code="CENSORED";throw censored;}
    const imageUrl=/^https?:\/\//i.test(generation.img)?generation.img:"data:image/webp;base64,"+generation.img;
-   addImage(imageUrl,$("prompt").value.trim(),seed);
-   return;
+   addImage(imageUrl,$("prompt").value.trim()+(comparison?" · comparaison : "+chosenName:""),seed);
+   return imageUrl;
   }
   const queue=Number(check.queue_position);
   if(Number.isFinite(queue)&&queue>=0&&queue!==lastQueue){lastQueue=queue;pollDelay=queue===0?3500:Math.min(9000,4500+queue*350);}
@@ -282,11 +296,70 @@ async function generateOne(fullPrompt,width,height,seed,index,total,steps,forced
  }
  throw Error("Attente supérieure à 12 minutes. Réessayez plus tard ; la disponibilité dépend des GPU bénévoles.");
 }
+
+function compareIntentLabel(intent){return intent==="anime-realistic"?"Anime réaliste":intent==="anime"?"Anime":intent==="photo"?"Photoréalisme":"Illustration générale";}
+function getCompareRatings(){try{return JSON.parse(localStorage.getItem("imagina-model-ratings-v1")||"{}");}catch(e){return {};}}
+function setCompareRating(category,model,value){
+ const ratings=getCompareRatings();ratings[category]=ratings[category]||{};ratings[category][model]=value;
+ try{localStorage.setItem("imagina-model-ratings-v1",JSON.stringify(ratings));}catch(e){}
+ document.querySelectorAll("[data-compare-model]").forEach(card=>{if(card.dataset.compareCategory!==category||card.dataset.compareModel!==model)return;card.querySelectorAll("[data-vote]").forEach(b=>b.classList.toggle("selected",b.dataset.vote===value));});
+ renderCompareRanking(category);
+}
+function renderCompareRanking(category){
+ const ratings=getCompareRatings()[category]||{};
+ const entries=Object.entries(ratings).filter(([,v])=>v==="like"||v==="dislike");
+ if(!entries.length)return;
+ const likes=entries.filter(([,v])=>v==="like").length;
+ $("compareStatus").textContent="Notes enregistrées pour "+compareIntentLabel(category)+" : "+likes+" appréciation(s) positive(s) sur "+entries.length+" vote(s). Ce classement reflète tes choix, pas une mesure automatique de qualité.";
+}
+async function compareModels(){
+ if(busy)return;
+ const prompt=$("prompt").value.trim();
+ if(!prompt){$("compareStatus").textContent="Écris d’abord un prompt.";return;}
+ if($("engineMode").value==="local"){$("compareStatus").textContent="La comparaison multi-modèles est disponible uniquement avec AI Horde.";return;}
+ if(activeModels.length<2){$("compareStatus").textContent="Il faut au moins deux modèles avec workers actifs. Actualise la page ou réessaie plus tard.";return;}
+ const intent=modelIntent();
+ const ranked=activeModels.slice().sort((a,b)=>modelRank(b,intent)-modelRank(a,intent)||b.count-a.count);
+ const specialists=ranked.filter(m=>modelRank(m,intent)>=10000);
+ const candidates=(specialists.length>=2?specialists:ranked).slice(0,2);
+ if(candidates.length<2||candidates[0].name===candidates[1].name){$("compareStatus").textContent="Deux modèles distincts ne sont pas disponibles pour ce style.";return;}
+ const [width,height]=dimensions($("ratio").value,$("quality").value),steps=Number($("speed").value);
+ const baseSeed=$("seed").value.trim()?Number($("seed").value)>>>0:Math.floor(Math.random()*2147483647);
+ const animeStyle=intent==="anime"||intent==="anime-realistic";
+ const photoStyle=intent==="photo";
+ const defaultNegative=animeStyle?"worst quality, low quality, blurry, bad anatomy, bad proportions, deformed hands, extra fingers, extra limbs, asymmetrical eyes, text, watermark, logo, signature":"worst quality, low quality, blurry, bad anatomy, deformed hands, extra fingers, extra limbs, plastic skin, text, watermark, logo, signature";
+ const qualityTerms=animeStyle?"masterpiece, best quality, highly detailed anime illustration, clean lineart, coherent anatomy, polished shading, detailed background":photoStyle?"high quality professional photograph, natural lighting, realistic materials, lifelike details, coherent anatomy, sharp subject focus":"masterpiece, best quality, highly detailed, coherent anatomy, refined details, balanced lighting";
+ const faceTerms=$("faceDetail").checked&&/(woman|man|girl|boy|person|portrait|character|visage|femme|homme|fille|garçon|personnage)/i.test(prompt)?(animeStyle?"expressive well-drawn eyes, balanced facial proportions":"natural facial anatomy, realistic eye alignment, detailed natural skin texture"):"";
+ const fullPrompt=[prompt,style,faceTerms,qualityTerms].filter(Boolean).join(", ")+"###"+[$("negative").value.trim(),defaultNegative].filter(Boolean).join(", ");
+ const results=$("compareResults");results.innerHTML="";
+ busy=true;$("generate").disabled=true;$("compareModels").disabled=true;$("engineMode").disabled=true;$("progress").style.display="block";
+ $("compareStatus").textContent="Comparaison "+compareIntentLabel(intent)+" · seed "+baseSeed+" · mêmes paramètres pour les deux modèles.";
+ try{
+  for(let i=0;i<candidates.length;i++){
+   const model=candidates[i];
+   $("compareStatus").textContent="Modèle "+(i+1)+"/2 : "+model.name+" · "+model.count+" worker(s) actuellement actif(s)…";
+   const url=await generateOne(fullPrompt,width,height,baseSeed,i+1,2,steps,model.name,true);
+   const card=document.createElement("article");card.className="compare-card";card.dataset.compareModel=model.name;card.dataset.compareCategory=intent;
+   const img=document.createElement("img");img.src=url;img.alt="Résultat de comparaison pour "+model.name;img.loading="lazy";
+   const meta=document.createElement("div");meta.className="compare-meta";
+   const name=document.createElement("strong");name.textContent=model.name;
+   const workers=document.createElement("div");workers.textContent=model.count+" worker(s) au moment du test · seed "+baseSeed;
+   const votes=document.createElement("div");votes.className="compare-votes";
+   for(const [value,label] of [["like","👍 Meilleur"],["dislike","👎 Moins bon"]]){const b=document.createElement("button");b.type="button";b.dataset.vote=value;b.textContent=label;b.addEventListener("click",()=>setCompareRating(intent,model.name,value));votes.append(b);}
+   meta.append(name,workers,votes);card.append(img,meta);results.append(card);
+   const prior=getCompareRatings()[intent]?.[model.name];if(prior)votes.querySelector('[data-vote="'+prior+'"]')?.classList.add("selected");
+  }
+  $("compareStatus").textContent="Comparaison terminée. Regarde les deux images et vote pour enregistrer tes préférences.";
+ }catch(error){$("compareStatus").textContent="Comparaison interrompue : "+error.message+" Les images déjà reçues restent dans la galerie.";}
+ finally{busy=false;$("generate").disabled=false;$("compareModels").disabled=false;$("engineMode").disabled=false;$("progress").style.display="none";}
+}
+$("compareModels").addEventListener("click",compareModels);
+
 async function generate(){
  if(busy)return;
  const prompt=$("prompt").value.trim();
  if(!prompt){status("Écrivez une description avant de générer.","error");$("prompt").focus();return;}
- busy=true;const btn=$("generate");btn.disabled=true;$("engineMode").disabled=true;btn.textContent="✦ Génération en cours…";$("progress").style.display="block";
+ busy=true;const btn=$("generate");btn.disabled=true;$("compareModels").disabled=true;$("engineMode").disabled=true;btn.textContent="✦ Génération en cours…";$("progress").style.display="block";
  const count=Number($("count").value),[width,height]=dimensions($("ratio").value,$("quality").value),steps=Number($("speed").value);
  const intent=modelIntent();
  const animeStyle=intent==="anime"||/anime|manga|illustration japonaise/i.test(style);
@@ -314,7 +387,7 @@ async function generate(){
   else if(completed>0)status(completed+" image(s) réussie(s), "+failed+" échec(s). "+errors[0],"error");
   else status("Aucune image n'a pu être générée. "+(errors[0]||"Réessayez."),"error");
  }catch(error){status(error.message,"error");}
- finally{busy=false;btn.disabled=false;$("engineMode").disabled=false;btn.textContent="✦  Générer mes images";$("progress").style.display="none";}
+ finally{busy=false;btn.disabled=false;$("compareModels").disabled=false;$("engineMode").disabled=false;btn.textContent="✦  Générer mes images";$("progress").style.display="none";}
 }
 $("generate").addEventListener("click",generate);
 restoreGallery();loadModels();
