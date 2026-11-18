@@ -12,10 +12,10 @@ Ce moteur ajoute une génération locale sur ton propre ordinateur. Il est indé
 ## Démarrage Windows
 
 1. Installe Python 3.11.
-2. Installe PyTorch adapté à ton matériel depuis https://pytorch.org/get-started/locally/ (choisis CUDA si tu as un GPU NVIDIA, CPU sinon).
-3. Double-clique sur `start_windows.bat`.
-4. Attends le téléchargement initial du modèle SDXL Turbo.
-5. Ouvre IMAGINA sur GitHub Pages, choisis **Moteur local Python**, puis teste la connexion.
+2. Double-clique sur `start_windows.bat` : il crée l’environnement et installe les bibliothèques du moteur.
+3. Si PyTorch manque, ouvre une deuxième fenêtre CMD, exécute les deux commandes affichées par le script, puis installe PyTorch depuis https://pytorch.org/get-started/locally/ (CUDA pour NVIDIA, CPU sinon).
+4. Relance `start_windows.bat` et attends le téléchargement initial du modèle SDXL Turbo.
+5. Ouvre IMAGINA sur GitHub Pages, choisis **Moteur local Python**, puis clique sur **Tester le moteur**.
 
 Le serveur écoute uniquement sur `http://127.0.0.1:7860` : il n'est pas exposé sur Internet.
 
